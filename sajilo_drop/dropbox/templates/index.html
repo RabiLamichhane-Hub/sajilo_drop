@@ -6,6 +6,50 @@
     <title>Document</title>
 </head>
 <body>
-    this is index
+    <form id="myForm" action="{% url 'upload' %}" method="post">
+        {% csrf_token %}
+
+        <textarea name="content" id="textarea" onchange="changed()">{{ obj.content }}</textarea>
+    </form>
+
+    <script>
+    function changed() {
+        const form = document.getElementById("myForm");
+
+        fetch(form.action, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": document.querySelector(
+                    '[name=csrfmiddlewaretoken]'
+                ).value
+            },
+            body: new URLSearchParams(new FormData(form))
+        })
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .then(data => document.getElementById('textarea').value=data.content)
+        .catch(error => console.error("Error:", error));
+    }
+
+    setInterval(function() {
+        const myInput = document.getElementById('textarea');
+        const isFocused = (document.activeElement === myInput);
+
+        if (isFocused) {
+        }
+        else{
+
+            fetch('{% url "content" %}', {
+                method: "GET",
+            })
+            .then(response => response.json())
+            .then(data => document.getElementById('textarea').value = data.content)
+            .catch(error => console.error("Error:", error));
+            }
+        }, 1000);
+
+    
+    
+    </script>
 </body>
 </html>
