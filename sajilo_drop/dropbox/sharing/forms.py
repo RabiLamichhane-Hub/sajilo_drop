@@ -1,8 +1,8 @@
-from .models import PublicMessage
+from .models import Message
 from django import forms
 
-class PublicMessageForm(forms.ModelForm):
+class MessageForm(forms.ModelForm):
     
     class Meta:
-        model = PublicMessage
+        model = Message
         fields = ("content",)

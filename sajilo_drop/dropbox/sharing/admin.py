@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .models import PublicMessage
+from .models import Message
 
 # Register your models here.
 
-@admin.register(PublicMessage)
-class PublicMessageAdmin(admin.ModelAdmin):
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
     list_display = ('content_preview', 'message_id', 'created_at', 'updated_at')
     search_fields = ('content', 'message_id')
     readonly_fields = ('message_id', 'created_at', 'updated_at')

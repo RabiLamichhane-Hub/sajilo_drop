@@ -3,16 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Secret Message</title>
+    <style>
+        textarea { width: 400px; height: 100px; }
+        #secretContainer { display: none; margin-top: 20px; }
+    </style>
 </head>
 <body>
+
     <form id="myForm" action="{% url 'upload' %}" method="post">
         {% csrf_token %}
-
         <textarea name="content" id="textarea" onchange="changed()">{{ obj.content }}</textarea>
     </form>
 
+    <button type="button" onclick="copyToInput()">&#8595;</button>
+
+    <br><br>
+
+    <button type="button" onclick="openSecretBox()">Secret Message</button>
+
+    <div id="secretContainer">
+
+        <div>
+            <label for="secretInput">Input</label><br>
+            <textarea id="secretInput"></textarea>
+        </div>
+
+        <div>
+            <label for="output">Output</label><br>
+            <textarea id="output" readonly></textarea>
+        </div>
+
+        <button type="button" onclick="copyToSharedText()">&#8593;</button>
+
+        <br><br>
+
+        <form onsubmit="return false;">
+            <label for="passkey">Passkey</label><br>
+            <input type="text" id="passkey" name="passkey" autocomplete="off" placeholder="8-15 characters">
+        </form>
+
+        <br>
+
+        <button type="button" onclick="encryptMessage()">Encrypt</button>
+        <button type="button" onclick="decryptMessage()">Decrypt</button>
+
+        <div id="error" style="color:red;"></div>
+
+    </div>
+
     <script>
+
+    /*
+        Shared text form submit / sync
+    */
+
     function changed() {
         const form = document.getElementById("myForm");
 
@@ -26,8 +71,7 @@
             body: new URLSearchParams(new FormData(form))
         })
         .then(response => response.json())
-        .then(data => console.log(data))
-        .then(data => document.getElementById('textarea').value=data.content)
+        .then(data => document.getElementById('textarea').value = data.content)
         .catch(error => console.error("Error:", error));
     }
 
@@ -37,19 +81,169 @@
 
         if (isFocused) {
         }
-        else{
-
+        else {
             fetch('{% url "content" %}', {
                 method: "GET",
             })
             .then(response => response.json())
             .then(data => document.getElementById('textarea').value = data.content)
             .catch(error => console.error("Error:", error));
-            }
-        }, 1000);
+        }
+    }, 1000);
 
-    
-    
+
+    /*
+        Secret message box
+    */
+
+    function openSecretBox() {
+        document.getElementById("secretContainer").style.display = "block";
+    }
+
+    function copyToInput() {
+        document.getElementById("secretInput").value =
+            document.getElementById("textarea").value;
+    }
+
+    function copyToSharedText() {
+        document.getElementById("textarea").value =
+            document.getElementById("output").value;
+        changed();
+    }
+
+
+    /*
+        AES-GCM
+    */
+
+    class AESGCM {
+        static ALGORITHM = "AES-GCM";
+        static HASH = "SHA-256";
+        static KEY_SIZE = 256;
+        static ITERATION_COUNT = 100000;
+        static MIN_KEY_LENGTH = 8;
+        static MAX_KEY_LENGTH = 15;
+
+        constructor() {
+            this.textEncoder = new TextEncoder();
+            this.textDecoder = new TextDecoder();
+        }
+
+        validateKey(key) {
+            if (typeof key !== "string") {
+                throw new Error("Key must be a string.");
+            }
+            if (key.length < AESGCM.MIN_KEY_LENGTH || key.length > AESGCM.MAX_KEY_LENGTH) {
+                throw new Error(`Key must be between ${AESGCM.MIN_KEY_LENGTH} and ${AESGCM.MAX_KEY_LENGTH} characters long.`);
+            }
+        }
+
+        async generateKeyMaterial(password) {
+            return crypto.subtle.importKey(
+                "raw",
+                this.textEncoder.encode(password),
+                { name: "PBKDF2" },
+                false,
+                ["deriveBits", "deriveKey"]
+            );
+        }
+
+        async generateKey(keyMaterial, salt) {
+            return crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: salt, iterations: AESGCM.ITERATION_COUNT, hash: AESGCM.HASH },
+                keyMaterial,
+                { name: AESGCM.ALGORITHM, length: AESGCM.KEY_SIZE },
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        async encrypt(plaintext, key) {
+            this.validateKey(key);
+            const data = this.textEncoder.encode(plaintext);
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const keyMaterial = await this.generateKeyMaterial(key);
+            const derivedKey = await this.generateKey(keyMaterial, salt);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+
+            const encryptedData = await crypto.subtle.encrypt(
+                { name: AESGCM.ALGORITHM, iv: iv },
+                derivedKey,
+                data
+            );
+
+            const ciphertextBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(encryptedData)));
+            const ivBase64 = btoa(String.fromCharCode.apply(null, iv));
+            const saltBase64 = btoa(String.fromCharCode.apply(null, salt));
+
+            return ciphertextBase64 + ":" + ivBase64 + ":" + saltBase64;
+        }
+
+        async decrypt(encryptedData, key) {
+            this.validateKey(key);
+            const parts = encryptedData.split(":");
+            if (parts.length !== 3) {
+                throw new Error("Invalid encrypted message format.");
+            }
+            const [ciphertextStr, ivStr, saltStr] = parts;
+
+            const ciphertext = Uint8Array.from(atob(ciphertextStr), c => c.charCodeAt(0));
+            const iv = Uint8Array.from(atob(ivStr), c => c.charCodeAt(0));
+            const salt = Uint8Array.from(atob(saltStr), c => c.charCodeAt(0));
+
+            const keyMaterial = await this.generateKeyMaterial(key);
+            const derivedKey = await this.generateKey(keyMaterial, salt);
+
+            const decryptedData = await crypto.subtle.decrypt(
+                { name: AESGCM.ALGORITHM, iv: iv },
+                derivedKey,
+                ciphertext
+            );
+
+            return this.textDecoder.decode(decryptedData);
+        }
+    }
+
+    const aesGcm = new AESGCM();
+
+    async function encryptMessage() {
+        const input = document.getElementById("secretInput").value;
+        const passkey = document.getElementById("passkey").value;
+        const output = document.getElementById("output");
+        const error = document.getElementById("error");
+
+        error.textContent = "";
+        output.value = "";
+
+        if (!input.trim()) { error.textContent = "Please enter a message."; return; }
+        if (!passkey) { error.textContent = "Please enter a passkey."; return; }
+
+        try {
+            output.value = await aesGcm.encrypt(input, passkey);
+        } catch (err) {
+            error.textContent = "Error: " + err.message;
+        }
+    }
+
+    async function decryptMessage() {
+        const input = document.getElementById("secretInput").value;
+        const passkey = document.getElementById("passkey").value;
+        const output = document.getElementById("output");
+        const error = document.getElementById("error");
+
+        error.textContent = "";
+        output.value = "";
+
+        if (!input.trim()) { error.textContent = "Please enter encrypted text."; return; }
+        if (!passkey) { error.textContent = "Please enter a passkey."; return; }
+
+        try {
+            output.value = await aesGcm.decrypt(input, passkey);
+        } catch (err) {
+            error.textContent = "Unable to decrypt. Check the encrypted text and passkey.";
+        }
+    }
+
     </script>
 </body>
 </html>

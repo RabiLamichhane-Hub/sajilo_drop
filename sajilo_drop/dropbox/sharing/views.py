@@ -1,13 +1,12 @@
 from django.shortcuts import render
-from .forms import PublicMessageForm
-from .models import PublicMessage
+from .models import Message
 
 # Create your views here.
 def index(req):
     # form = PublicMessageForm()
     # message = req.POST['content']
     ip_addr = req.META['REMOTE_ADDR']
-    obj,created = PublicMessage.objects.get_or_create(ip = ip_addr)
+    obj,created = Message.objects.get_or_create(ip = ip_addr)
     if created:
         obj.content = "Nothing to see here!"
 
@@ -19,7 +18,7 @@ from django.http import JsonResponse
 def upload(req):
     message = req.POST['content']
     ip_addr = req.META['REMOTE_ADDR']
-    obj,created = PublicMessage.objects.get_or_create(ip = ip_addr)
+    obj,created = Message.objects.get_or_create(ip = ip_addr)
     if created:
         obj.content = "Nothing to see here!"
 
@@ -32,10 +31,9 @@ def upload(req):
         }
     )
 
-from django.http import HttpResponse
 def content(req):
     ip_addr = req.META['REMOTE_ADDR']
-    obj,created = PublicMessage.objects.get_or_create(ip = ip_addr)
+    obj,created = Message.objects.get_or_create(ip = ip_addr)
 
 
     return JsonResponse(
