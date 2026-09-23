@@ -3,15 +3,11 @@ from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
 from .models import Message
 
-def get_client_ip(req):
-    x_forwarded_for = req.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0].strip()
-    return req.META.get('REMOTE_ADDR', '127.0.0.1')
+from .utils import get_client_ip
 
-@ratelimit(key='ip', rate='60/m', block=False)
+@ratelimit(key='ip', rate='60/m')
 def index(req):
-    ip_addr = get_client_ip(req)
+    ip_addr = get_client_ip(req.META)
     obj, created = Message.objects.get_or_create(ip=ip_addr)
     if created:
         obj.content = "Nothing to see here!"
@@ -26,7 +22,7 @@ def upload(req):
         )
 
     message = req.POST.get('content', '')
-    ip_addr = get_client_ip(req)
+    ip_addr = get_client_ip(req.META)
     obj, created = Message.objects.get_or_create(ip=ip_addr)
     if created:
         obj.content = "Nothing to see here!"
@@ -48,7 +44,7 @@ def content(req):
             status=429
         )
 
-    ip_addr = get_client_ip(req)
+    ip_addr = get_client_ip(req.META)
     obj, created = Message.objects.get_or_create(ip=ip_addr)
     return JsonResponse(
         {
@@ -56,3 +52,16 @@ def content(req):
             "content": obj.content
         }
     )
+
+
+from django.core.cache import cache
+from django.http import JsonResponse
+
+def redis_test(request):
+    cache.set("django_test", "Hello Redis", timeout=60)
+
+    value = cache.get("django_test")
+
+    return JsonResponse({
+        "value": value
+    })

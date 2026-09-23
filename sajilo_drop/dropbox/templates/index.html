@@ -71,11 +71,32 @@
             body: new URLSearchParams(new FormData(form))
         })
         .then(response => response.json())
+        .then(data => {
+            console.log("Shared data:", data);
+            attempts = 0;
+            value = 5000;
+            return data;
+        })
         .then(data => document.getElementById('textarea').value = data.content)
         .catch(error => console.error("Error:", error));
     }
 
-    setInterval(function() {
+    let value = 5000;
+    let attempts = 0;
+
+    function attempt() {
+        attempts++;
+
+        if (attempts > 5) {
+            value = 20000;
+        } else {
+            value = 5000;
+        }
+
+        return value;
+    }
+
+    function getContent() {
         const myInput = document.getElementById('textarea');
         const isFocused = (document.activeElement === myInput);
 
@@ -87,13 +108,19 @@
             })
             .then(response => response.json())
             .then(data => {
-            console.log("Shared data:", data);
-            return data;
+                console.log("Shared data:", data);
+                return data;
             })
             .then(data => document.getElementById('textarea').value = data.content)
             .catch(error => console.error("Error:", error));
         }
-    }, 1000);
+
+        // Dynamic polling: schedules the next check using attempt()
+        setTimeout(getContent, attempt());
+    }
+
+    // Initial trigger
+    setTimeout(getContent, attempt());
 
 
     /* Secret message box */
@@ -114,9 +141,15 @@
     }
 
 
-    /* XOR cipher (repeating-key), mirrors the Python reference implementation */
+    /*
+        AES-GCM
+    */
 
     class AESGCM {
+        static ALGORITHM = "AES-GCM";
+        static HASH = "SHA-256";
+        static KEY_SIZE = 256;
+        static ITERATION_COUNT = 100000;
         static MIN_KEY_LENGTH = 8;
         static MAX_KEY_LENGTH = 15;
 
@@ -134,35 +167,69 @@
             }
         }
 
-        // XOR each message byte with the corresponding key byte, repeating
-        // the key (passkey) to cover the full message length, since here
-        // the passkey is shorter than the message rather than equal to it.
-        xorBytes(dataBytes, keyBytes) {
-            const out = new Uint8Array(dataBytes.length);
-            for (let i = 0; i < dataBytes.length; i++) {
-                out[i] = dataBytes[i] ^ keyBytes[i % keyBytes.length];
-            }
-            return out;
+        async generateKeyMaterial(password) {
+            return crypto.subtle.importKey(
+                "raw",
+                this.textEncoder.encode(password),
+                { name: "PBKDF2" },
+                false,
+                ["deriveBits", "deriveKey"]
+            );
+        }
+
+        async generateKey(keyMaterial, salt) {
+            return crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: salt, iterations: AESGCM.ITERATION_COUNT, hash: AESGCM.HASH },
+                keyMaterial,
+                { name: AESGCM.ALGORITHM, length: AESGCM.KEY_SIZE },
+                true,
+                ["encrypt", "decrypt"]
+            );
         }
 
         async encrypt(plaintext, key) {
             this.validateKey(key);
             const data = this.textEncoder.encode(plaintext);
-            const keyBytes = this.textEncoder.encode(key);
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const keyMaterial = await this.generateKeyMaterial(key);
+            const derivedKey = await this.generateKey(keyMaterial, salt);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
 
-            const ciphertext = this.xorBytes(data, keyBytes);
+            const encryptedData = await crypto.subtle.encrypt(
+                { name: AESGCM.ALGORITHM, iv: iv },
+                derivedKey,
+                data
+            );
 
-            return btoa(String.fromCharCode.apply(null, ciphertext));
+            const ciphertextBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(encryptedData)));
+            const ivBase64 = btoa(String.fromCharCode.apply(null, iv));
+            const saltBase64 = btoa(String.fromCharCode.apply(null, salt));
+
+            return ciphertextBase64 + ":" + ivBase64 + ":" + saltBase64;
         }
 
         async decrypt(encryptedData, key) {
             this.validateKey(key);
-            const keyBytes = this.textEncoder.encode(key);
+            const parts = encryptedData.split(":");
+            if (parts.length !== 3) {
+                throw new Error("Invalid encrypted message format.");
+            }
+            const [ciphertextStr, ivStr, saltStr] = parts;
 
-            const ciphertext = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-            const plaintextBytes = this.xorBytes(ciphertext, keyBytes);
+            const ciphertext = Uint8Array.from(atob(ciphertextStr), c => c.charCodeAt(0));
+            const iv = Uint8Array.from(atob(ivStr), c => c.charCodeAt(0));
+            const salt = Uint8Array.from(atob(saltStr), c => c.charCodeAt(0));
 
-            return this.textDecoder.decode(plaintextBytes);
+            const keyMaterial = await this.generateKeyMaterial(key);
+            const derivedKey = await this.generateKey(keyMaterial, salt);
+
+            const decryptedData = await crypto.subtle.decrypt(
+                { name: AESGCM.ALGORITHM, iv: iv },
+                derivedKey,
+                ciphertext
+            );
+
+            return this.textDecoder.decode(decryptedData);
         }
     }
 
