@@ -32,7 +32,9 @@
 <body>
 <!-- Sajilo Drop Logo -->
 <div class="site-logo">
-    <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
+    <a href="{% url 'index' %}" title="Refresh page">
+        <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
+    </a>
 </div>
 
     <!-- =====================================================
@@ -128,45 +130,53 @@
                 </div>
 
                 <!-- Output: result appears here (read-only) -->
-                <div>
-                    <label class="label" for="output">Output</label>
-                    <textarea id="output" readonly placeholder="Result will appear here…"></textarea>
-                </div>
+                <!-- Passkey -->
+<div>
+    <label class="label" for="passkey">Passkey</label>
 
-                <!-- Arrow button: push the output back up to the shared text area -->
-                <div class="flex-row">
-                    <button type="button" class="btn-circle" onclick="copyToSharedText()" title="Send output to shared text">&#8593;</button>
-                    <span class="hint">push output up to shared text</span>
-                </div>
+    <form onsubmit="return false;">
+        <input type="text"
+               id="passkey"
+               name="passkey"
+               autocomplete="off"
+               placeholder="8–15 characters">
+    </form>
+</div>
 
-                <div class="divider"></div>
+<!-- Encrypt / Decrypt buttons -->
+<div class="flex-row">
+    <button type="button"
+            class="btn-primary"
+            onclick="encryptMessage()">Encrypt</button>
 
-                <!-- Passkey: used for both encryption and decryption -->
-                <div>
-                    <label class="label" for="passkey">Passkey</label>
-                    <!-- Separate form so pressing Enter does not submit the outer form -->
-                    <form onsubmit="return false;">
-                        <input type="text" id="passkey" name="passkey" autocomplete="off" placeholder="8–15 characters">
-                    </form>
-                </div>
+    <button type="button"
+            class="btn-ghost"
+            onclick="decryptMessage()">Decrypt</button>
+</div>
 
-                <!-- Action buttons -->
-                <div class="flex-row">
-                    <button type="button" class="btn-primary" onclick="encryptMessage()">Encrypt</button>
-                    <button type="button" class="btn-ghost"   onclick="decryptMessage()">Decrypt</button>
-                </div>
+<!-- Error message -->
+<div id="error"></div>
 
-                <!-- Error message (shown in red when something goes wrong) -->
-                <div id="error"></div>
+<!-- Output -->
+<div>
+    <label class="label" for="output">Output</label>
 
-            </div>
-        </div>
-        <!-- /secretContainer -->
+    <textarea id="output"
+              readonly
+              placeholder="Result will appear here…"></textarea>
+</div>
 
-    </div>
-    <!-- /.card -->
+<!-- Push output back to shared text -->
+<div class="flex-row">
+    <button type="button"
+            class="btn-circle"
+            onclick="copyToSharedText()"
+            title="Send output to shared text">&#8593;</button>
 
+    <span class="hint">push output up to shared text</span>
+</div>
 
+            
     <script>
 
     /* ==========================================================
@@ -320,7 +330,10 @@
         .then(function (data) {
             document.getElementById('textarea').value = data.content;
         })
-        .catch(function (err) { console.error("Upload error:", err); });
+       .catch(function (err) {
+    console.error("Upload error:", err);
+    setLiveRed();
+     });
     }
 
     setInterval(function () {
@@ -330,9 +343,24 @@
         if (document.activeElement === textarea) return;
 
         fetch('{% url "content" %}')
-            .then(function (r) { return r.json(); })
-            .then(function (data) { textarea.value = data.content; })
-            .catch(function (err) { console.error("Poll error:", err); });
+    .then(function (r) {
+        if (!r.ok) {
+            throw new Error("Server not responding");
+        }
+        return r.json();
+    })
+    .then(function (data) {
+        textarea.value = data.content;
+
+        // Server is running
+        setLiveGreen();
+    })
+    .catch(function (err) {
+        console.error("Server connection error:", err);
+
+        // Server is down / connection failed
+        setLiveRed();
+    });
 
     }, 1000);
 

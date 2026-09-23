@@ -536,3 +536,7 @@ button:active {
     height: auto;
     display: block;
 }
+.site-logo a {
+    display: block;
+    cursor: pointer;
+}
