@@ -3,70 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secret Message</title>
-    <style>
-        textarea { width: 400px; height: 100px; }
-        #secretContainer { display: none; margin-top: 20px; }
-    </style>
+    <title>Sajilo Drop — Shared Clipboard</title>
+    <meta name="description" content="Real-time shared clipboard with optional encrypted secret messages.">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+
+    <!--
+        Apply the saved theme before the page renders to avoid a flash
+        of the wrong theme. This must run in <head>, not at the bottom.
+    -->
+    <script>
+        (function () {
+            var saved = localStorage.getItem('theme') || 'system';
+            if (saved === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else if (saved === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                // System mode: check the OS preference
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (!prefersDark) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            }
+        })();
+    </script>
 </head>
 <body>
+<!-- Sajilo Drop Logo -->
+<div class="site-logo">
+    <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
+</div>
 
-    <form id="myForm" action="{% url 'upload' %}" method="post">
-        {% csrf_token %}
-        <textarea name="content" id="textarea" onchange="changed()">{{ obj.content }}</textarea>
-    </form>
+    <!-- =====================================================
+         Theme switcher — one button fixed to the top-right.
+         Click to cycle: System → Light → Dark → System.
+         ===================================================== -->
+    <div class="theme-switcher" role="group" aria-label="Color theme">
+        <button class="theme-cycle-btn" id="themeCycleBtn"
+                onclick="cycleTheme()" title="Change theme">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+            </svg>
+            <span id="themeText">System</span>
+        </button>
+    </div>
 
-    <button type="button" onclick="copyToInput()">&#8595;</button>
 
-    <br><br>
+    <!-- =====================================================
+         Page header
+         ===================================================== -->
+    <header class="page-header">
+    <h1>Share Text <span>Securely</span></h1>
+    <p>Real-time shared clipboard &mdash; type here, see it everywhere.</p>
+</header>
 
-    <button type="button" onclick="openSecretBox()">Secret Message</button>
 
-    <div id="secretContainer">
+    <!-- =====================================================
+         Main card
+         ===================================================== -->
+    <div class="card">
 
-        <div>
-            <label for="secretInput">Input</label><br>
-            <textarea id="secretInput"></textarea>
+        <!-- Card top row: section title + live indicator -->
+        <div class="flex-row space-between" style="margin-bottom: 0.75rem;">
+            <span class="label" style="margin-bottom: 0;">Shared text</span>
+            <span class="flex-row" style="gap: 0.4rem;">
+                <span class="live-dot"></span>
+                <span class="hint">live sync</span>
+            </span>
         </div>
 
-        <div>
-            <label for="output">Output</label><br>
-            <textarea id="output" readonly></textarea>
-        </div>
-
-        <button type="button" onclick="copyToSharedText()">&#8593;</button>
-
-        <br><br>
-
-        <form onsubmit="return false;">
-            <label for="passkey">Passkey</label><br>
-            <input type="text" id="passkey" name="passkey" autocomplete="off" placeholder="8-15 characters">
+        <!-- Shared text form (auto-saves on change, polled every 1 s) -->
+        <form id="myForm" action="{% url 'upload' %}" method="post">
+            {% csrf_token %}
+            <textarea
+                name="content"
+                id="textarea"
+                onchange="changed()"
+                placeholder="Start typing…">{{ obj.content }}</textarea>
         </form>
 
-        <br>
+        <div class="gap-sm"></div>
 
-        <button type="button" onclick="encryptMessage()">Encrypt</button>
-        <button type="button" onclick="decryptMessage()">Decrypt</button>
+        <!-- Arrow button: copy shared text down into the secret box -->
+        <div class="flex-row">
+            <button type="button" class="btn-circle" onclick="copyToInput()" title="Copy to secret input">&#8595;</button>
+            <span class="hint">copy down to secret box</span>
+        </div>
 
-        <div id="error" style="color:red;"></div>
+        <div class="divider"></div>
+
+        <!-- Toggle button that shows / hides the secret panel -->
+        <button type="button" class="btn-ghost" id="toggleSecretBtn" onclick="toggleSecretBox()" style="width: 100%;">
+            &#128274; Secret message
+        </button>
+
+
+        <!-- =====================================================
+             Secret panel (hidden until the button above is clicked)
+             ===================================================== -->
+        <div id="secretContainer">
+
+            <div class="gap"></div>
+
+            <!-- Small section header inside the secret panel -->
+            <div class="secret-panel-header">
+                <!-- Lock icon (inline SVG so it inherits the current text color) -->
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>Encrypt / Decrypt</span>
+            </div>
+
+            <div class="flex-col">
+
+                <!-- Input: paste the message to encrypt, or the ciphertext to decrypt -->
+                <div>
+                    <label class="label" for="secretInput">Input</label>
+                    <textarea id="secretInput" placeholder="Message to encrypt, or ciphertext to decrypt…"></textarea>
+                </div>
+
+                <!-- Output: result appears here (read-only) -->
+                <div>
+                    <label class="label" for="output">Output</label>
+                    <textarea id="output" readonly placeholder="Result will appear here…"></textarea>
+                </div>
+
+                <!-- Arrow button: push the output back up to the shared text area -->
+                <div class="flex-row">
+                    <button type="button" class="btn-circle" onclick="copyToSharedText()" title="Send output to shared text">&#8593;</button>
+                    <span class="hint">push output up to shared text</span>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Passkey: used for both encryption and decryption -->
+                <div>
+                    <label class="label" for="passkey">Passkey</label>
+                    <!-- Separate form so pressing Enter does not submit the outer form -->
+                    <form onsubmit="return false;">
+                        <input type="text" id="passkey" name="passkey" autocomplete="off" placeholder="8–15 characters">
+                    </form>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex-row">
+                    <button type="button" class="btn-primary" onclick="encryptMessage()">Encrypt</button>
+                    <button type="button" class="btn-ghost"   onclick="decryptMessage()">Decrypt</button>
+                </div>
+
+                <!-- Error message (shown in red when something goes wrong) -->
+                <div id="error"></div>
+
+            </div>
+        </div>
+        <!-- /secretContainer -->
 
     </div>
+    <!-- /.card -->
+
 
     <script>
 
-    /*
-        Shared text form submit / sync
-    */
+    /* ==========================================================
+       1. Theme switcher
+       ==========================================================
+
+       Three modes:
+         "light"  - always use the light palette
+         "dark"   - always use the dark palette
+         "system" - automatically follow the OS preference
+
+       Click the single button to cycle:
+       System → Light → Dark → System
+
+       The choice is saved to localStorage so it persists across
+       page reloads.
+    ========================================================== */
+
+    var themes = ['system', 'light', 'dark'];
+
+    function setTheme(mode) {
+        localStorage.setItem('theme', mode);
+        applyTheme(mode);
+        updateThemeButton(mode);
+    }
+
+
+    function applyTheme(mode) {
+        var html = document.documentElement;
+
+        if (mode === 'light') {
+            html.setAttribute('data-theme', 'light');
+
+        } else if (mode === 'dark') {
+            html.removeAttribute('data-theme');
+
+        } else {
+            // System mode: check the current OS color scheme preference
+            var prefersDark =
+                window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (prefersDark) {
+                html.removeAttribute('data-theme');
+            } else {
+                html.setAttribute('data-theme', 'light');
+            }
+        }
+    }
+
+
+    // Cycle: System → Light → Dark → System
+    function cycleTheme() {
+        var current = localStorage.getItem('theme') || 'system';
+        var currentIndex = themes.indexOf(current);
+        var nextIndex = (currentIndex + 1) % themes.length;
+
+        setTheme(themes[nextIndex]);
+    }
+
+
+    // Update the icon and text of the single theme button
+    function updateThemeButton(mode) {
+        var icon = document.getElementById('themeIcon');
+        var text = document.getElementById('themeText');
+
+        if (mode === 'light') {
+
+            text.textContent = 'Light';
+
+            icon.innerHTML = `
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            `;
+
+        } else if (mode === 'dark') {
+
+            text.textContent = 'Dark';
+
+            icon.innerHTML = `
+                <path d="M21 12.79A9 9 0 1 1 11.21 3
+                         7 7 0 0 0 21 12.79z"></path>
+            `;
+
+        } else {
+
+            text.textContent = 'System';
+
+            icon.innerHTML = `
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+            `;
+        }
+    }
+
+
+    // On page load: restore the saved theme
+    (function () {
+        var saved = localStorage.getItem('theme') || 'system';
+
+        applyTheme(saved);
+        updateThemeButton(saved);
+    })();
+
+
+    // If System mode is selected, follow OS-level theme changes
+    window.matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', function () {
+
+            var current =
+                localStorage.getItem('theme') || 'system';
+
+            if (current === 'system') {
+                applyTheme('system');
+                updateThemeButton('system');
+            }
+        });
+
+
+    /* ==========================================================
+       2. Shared text - sync with the server
+       ==========================================================
+
+       changed()   - called whenever the user edits the textarea.
+                     POSTs the new content and updates the field
+                     with what the server saved (resolves conflicts).
+
+       setInterval - polls the server every second while the
+                     textarea is not focused, so changes made by
+                     other users appear automatically.
+    ========================================================== */
 
     function changed() {
-        const form = document.getElementById("myForm");
+        var form = document.getElementById("myForm");
 
         fetch(form.action, {
             method: "POST",
             headers: {
-                "X-CSRFToken": document.querySelector(
-                    '[name=csrfmiddlewaretoken]'
-                ).value
+                "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
             },
             body: new URLSearchParams(new FormData(form))
         })
@@ -123,17 +369,33 @@
     setTimeout(getContent, attempt());
 
 
-    /* Secret message box */
+    /* ==========================================================
+       3. Secret panel - show / hide and copy helpers
+    ========================================================== */
 
-    function openSecretBox() {
-        document.getElementById("secretContainer").style.display = "block";
+    var secretOpen = false;
+
+    function toggleSecretBox() {
+        secretOpen = !secretOpen;
+        var container = document.getElementById("secretContainer");
+        var btn       = document.getElementById("toggleSecretBtn");
+
+        if (secretOpen) {
+            container.classList.add("open");
+            btn.textContent = "\u2715 Close secret box";
+        } else {
+            container.classList.remove("open");
+            btn.innerHTML = "&#128274; Secret message";
+        }
     }
 
+    // Copy the shared textarea content into the secret input
     function copyToInput() {
         document.getElementById("secretInput").value =
             document.getElementById("textarea").value;
     }
 
+    // Copy the secret output back into the shared textarea and save it
     function copyToSharedText() {
         document.getElementById("textarea").value =
             document.getElementById("output").value;
@@ -154,17 +416,18 @@
         static MAX_KEY_LENGTH = 15;
 
         constructor() {
-            this.textEncoder = new TextEncoder();
-            this.textDecoder = new TextDecoder();
+            this.encoder = new TextEncoder();
+            this.decoder = new TextDecoder();
         }
 
+        // Make sure the passkey meets the length requirement
         validateKey(key) {
-            if (typeof key !== "string") {
-                throw new Error("Key must be a string.");
-            }
-            if (key.length < AESGCM.MIN_KEY_LENGTH || key.length > AESGCM.MAX_KEY_LENGTH) {
-                throw new Error(`Key must be between ${AESGCM.MIN_KEY_LENGTH} and ${AESGCM.MAX_KEY_LENGTH} characters long.`);
-            }
+            if (typeof key !== "string")
+                throw new Error("Passkey must be a string.");
+            if (key.length < XORCipher.MIN_KEY || key.length > XORCipher.MAX_KEY)
+                throw new Error(
+                    "Passkey must be " + XORCipher.MIN_KEY + "-" + XORCipher.MAX_KEY + " characters long."
+                );
         }
 
         async generateKeyMaterial(password) {
@@ -233,43 +496,76 @@
         }
     }
 
-    const aesGcm = new AESGCM();
+    var cipher = new XORCipher();
+
+    // Live indicator: green normally, red on encryption/decryption errors
+    function setLiveGreen() {
+        var dot = document.querySelector('.live-dot');
+        if (dot) dot.classList.remove('encryption-error');
+    }
+
+    function setLiveRed() {
+        var dot = document.querySelector('.live-dot');
+        if (dot) dot.classList.add('encryption-error');
+    }
 
     async function encryptMessage() {
-        const input = document.getElementById("secretInput").value;
-        const passkey = document.getElementById("passkey").value;
-        const output = document.getElementById("output");
-        const error = document.getElementById("error");
+        var input   = document.getElementById("secretInput").value;
+        var passkey = document.getElementById("passkey").value;
+        var output  = document.getElementById("output");
+        var error   = document.getElementById("error");
 
         error.textContent = "";
-        output.value = "";
+        output.value      = "";
 
-        if (!input.trim()) { error.textContent = "Please enter a message."; return; }
-        if (!passkey) { error.textContent = "Please enter a passkey."; return; }
+        if (!input.trim()) {
+            error.textContent = "Please enter a message.";
+            setLiveRed();
+            return;
+        }
+
+        if (!passkey) {
+            error.textContent = "Please enter a passkey.";
+            setLiveRed();
+            return;
+        }
 
         try {
-            output.value = await aesGcm.encrypt(input, passkey);
+            output.value = await cipher.encrypt(input, passkey);
+            setLiveGreen();
         } catch (err) {
             error.textContent = "Error: " + err.message;
+            setLiveRed();
         }
     }
 
     async function decryptMessage() {
-        const input = document.getElementById("secretInput").value;
-        const passkey = document.getElementById("passkey").value;
-        const output = document.getElementById("output");
-        const error = document.getElementById("error");
+        var input   = document.getElementById("secretInput").value;
+        var passkey = document.getElementById("passkey").value;
+        var output  = document.getElementById("output");
+        var error   = document.getElementById("error");
 
         error.textContent = "";
-        output.value = "";
+        output.value      = "";
 
-        if (!input.trim()) { error.textContent = "Please enter encrypted text."; return; }
-        if (!passkey) { error.textContent = "Please enter a passkey."; return; }
+        if (!input.trim()) {
+            error.textContent = "Please enter encrypted text.";
+            setLiveRed();
+            return;
+        }
+
+        if (!passkey) {
+            error.textContent = "Please enter a passkey.";
+            setLiveRed();
+            return;
+        }
 
         try {
-            output.value = await aesGcm.decrypt(input, passkey);
+            output.value = await cipher.decrypt(input, passkey);
+            setLiveGreen();
         } catch (err) {
-            error.textContent = "Unable to decrypt. Check the encrypted text and passkey.";
+            error.textContent = "Unable to decrypt - check the ciphertext and passkey.";
+            setLiveRed();
         }
     }
 
