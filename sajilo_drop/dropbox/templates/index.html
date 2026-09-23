@@ -30,51 +30,24 @@
     </script>
 </head>
 <body>
+<!-- Sajilo Drop Logo -->
+<div class="site-logo">
+    <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
+</div>
 
     <!-- =====================================================
-         Theme switcher — fixed to the top-right corner.
-         Three options: Light, System (follows OS), Dark.
-         The active button is highlighted in purple.
+         Theme switcher — one button fixed to the top-right.
+         Click to cycle: System → Light → Dark → System.
          ===================================================== -->
     <div class="theme-switcher" role="group" aria-label="Color theme">
-
-        <button class="theme-btn" id="btn-light" onclick="setTheme('light')" title="Light mode">
-            <!-- Sun icon -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1"  x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22"   x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1"  y1="12" x2="3"  y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        <button class="theme-cycle-btn" id="themeCycleBtn"
+                onclick="cycleTheme()" title="Change theme">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
             </svg>
-            Light
+            <span id="themeText">System</span>
         </button>
-
-        <button class="theme-btn" id="btn-system" onclick="setTheme('system')" title="Follow system setting">
-            <!-- Monitor icon -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                <line x1="8"  y1="21" x2="16" y2="21"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-            System
-        </button>
-
-        <button class="theme-btn" id="btn-dark" onclick="setTheme('dark')" title="Dark mode">
-            <!-- Moon icon -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-            Dark
-        </button>
-
     </div>
 
 
@@ -82,9 +55,9 @@
          Page header
          ===================================================== -->
     <header class="page-header">
-        <h1>Sajilo <span>Drop</span></h1>
-        <p>Real-time shared clipboard &mdash; type here, see it everywhere.</p>
-    </header>
+    <h1>Share Text <span>Securely</span></h1>
+    <p>Real-time shared clipboard &mdash; type here, see it everywhere.</p>
+</header>
 
 
     <!-- =====================================================
@@ -201,21 +174,25 @@
        ==========================================================
 
        Three modes:
-         "light"   - always use the light palette
-         "dark"    - always use the dark palette (default)
-         "system"  - automatically follow the OS preference
+         "light"  - always use the light palette
+         "dark"   - always use the dark palette
+         "system" - automatically follow the OS preference
+
+       Click the single button to cycle:
+       System → Light → Dark → System
 
        The choice is saved to localStorage so it persists across
-       page reloads. The theme is applied by setting or removing
-       the data-theme="light" attribute on <html> - the CSS then
-       does the rest via the [data-theme="light"] selector.
+       page reloads.
     ========================================================== */
+
+    var themes = ['system', 'light', 'dark'];
 
     function setTheme(mode) {
         localStorage.setItem('theme', mode);
         applyTheme(mode);
-        updateActiveButton(mode);
+        updateThemeButton(mode);
     }
+
 
     function applyTheme(mode) {
         var html = document.documentElement;
@@ -227,8 +204,10 @@
             html.removeAttribute('data-theme');
 
         } else {
-            // System: check the current OS color scheme preference
-            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            // System mode: check the current OS color scheme preference
+            var prefersDark =
+                window.matchMedia('(prefers-color-scheme: dark)').matches;
+
             if (prefersDark) {
                 html.removeAttribute('data-theme');
             } else {
@@ -237,27 +216,81 @@
         }
     }
 
-    function updateActiveButton(mode) {
-        // Remove "active" from all three buttons, then add it to the chosen one
-        ['light', 'system', 'dark'].forEach(function (m) {
-            document.getElementById('btn-' + m).classList.remove('active');
-        });
-        document.getElementById('btn-' + mode).classList.add('active');
+
+    // Cycle: System → Light → Dark → System
+    function cycleTheme() {
+        var current = localStorage.getItem('theme') || 'system';
+        var currentIndex = themes.indexOf(current);
+        var nextIndex = (currentIndex + 1) % themes.length;
+
+        setTheme(themes[nextIndex]);
     }
 
-    // On page load: read the saved preference and activate the right button
+
+    // Update the icon and text of the single theme button
+    function updateThemeButton(mode) {
+        var icon = document.getElementById('themeIcon');
+        var text = document.getElementById('themeText');
+
+        if (mode === 'light') {
+
+            text.textContent = 'Light';
+
+            icon.innerHTML = `
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            `;
+
+        } else if (mode === 'dark') {
+
+            text.textContent = 'Dark';
+
+            icon.innerHTML = `
+                <path d="M21 12.79A9 9 0 1 1 11.21 3
+                         7 7 0 0 0 21 12.79z"></path>
+            `;
+
+        } else {
+
+            text.textContent = 'System';
+
+            icon.innerHTML = `
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+            `;
+        }
+    }
+
+
+    // On page load: restore the saved theme
     (function () {
         var saved = localStorage.getItem('theme') || 'system';
-        updateActiveButton(saved);
 
-        // If the user chose System mode, also watch for OS-level changes
-        // (e.g. the OS switches to dark at sunset) and update in real time
-        if (saved === 'system') {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-                applyTheme('system');
-            });
-        }
+        applyTheme(saved);
+        updateThemeButton(saved);
     })();
+
+
+    // If System mode is selected, follow OS-level theme changes
+    window.matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', function () {
+
+            var current =
+                localStorage.getItem('theme') || 'system';
+
+            if (current === 'system') {
+                applyTheme('system');
+                updateThemeButton('system');
+            }
+        });
 
 
     /* ==========================================================
@@ -399,6 +432,17 @@
 
     var cipher = new XORCipher();
 
+    // Live indicator: green normally, red on encryption/decryption errors
+    function setLiveGreen() {
+        var dot = document.querySelector('.live-dot');
+        if (dot) dot.classList.remove('encryption-error');
+    }
+
+    function setLiveRed() {
+        var dot = document.querySelector('.live-dot');
+        if (dot) dot.classList.add('encryption-error');
+    }
+
     async function encryptMessage() {
         var input   = document.getElementById("secretInput").value;
         var passkey = document.getElementById("passkey").value;
@@ -408,13 +452,24 @@
         error.textContent = "";
         output.value      = "";
 
-        if (!input.trim()) { error.textContent = "Please enter a message."; return; }
-        if (!passkey)      { error.textContent = "Please enter a passkey."; return; }
+        if (!input.trim()) {
+            error.textContent = "Please enter a message.";
+            setLiveRed();
+            return;
+        }
+
+        if (!passkey) {
+            error.textContent = "Please enter a passkey.";
+            setLiveRed();
+            return;
+        }
 
         try {
             output.value = await cipher.encrypt(input, passkey);
+            setLiveGreen();
         } catch (err) {
             error.textContent = "Error: " + err.message;
+            setLiveRed();
         }
     }
 
@@ -427,13 +482,24 @@
         error.textContent = "";
         output.value      = "";
 
-        if (!input.trim()) { error.textContent = "Please enter encrypted text."; return; }
-        if (!passkey)      { error.textContent = "Please enter a passkey."; return; }
+        if (!input.trim()) {
+            error.textContent = "Please enter encrypted text.";
+            setLiveRed();
+            return;
+        }
+
+        if (!passkey) {
+            error.textContent = "Please enter a passkey.";
+            setLiveRed();
+            return;
+        }
 
         try {
             output.value = await cipher.decrypt(input, passkey);
+            setLiveGreen();
         } catch (err) {
             error.textContent = "Unable to decrypt - check the ciphertext and passkey.";
+            setLiveRed();
         }
     }
 
