@@ -426,17 +426,17 @@
         static MAX_KEY_LENGTH = 15;
 
         constructor() {
-            this.encoder = new TextEncoder();
-            this.decoder = new TextDecoder();
+            this.textEncoder = new TextEncoder();
+            this.textDecoder = new TextDecoder();
         }
 
         // Make sure the passkey meets the length requirement
         validateKey(key) {
             if (typeof key !== "string")
                 throw new Error("Passkey must be a string.");
-            if (key.length < XORCipher.MIN_KEY || key.length > XORCipher.MAX_KEY)
+            if (key.length < AESGCM.MIN_KEY_LENGTH || key.length > AESGCM.MAX_KEY_LENGTH)
                 throw new Error(
-                    "Passkey must be " + XORCipher.MIN_KEY + "-" + XORCipher.MAX_KEY + " characters long."
+                    "Passkey must be " + AESGCM.MIN_KEY_LENGTH + "-" + AESGCM.MAX_KEY_LENGTH + " characters long."
                 );
         }
 
@@ -506,7 +506,7 @@
         }
     }
 
-    var cipher = new XORCipher();
+    var cipher = new AESGCM();
 
     // Live indicator: green normally, red on encryption/decryption errors
     function setLiveGreen() {
