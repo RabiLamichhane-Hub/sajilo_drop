@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sajilo Drop — Shared Clipboard</title>
+    <title>Sajilo Drop - Shared Clipboard</title>
     <meta name="description" content="Real-time shared clipboard with optional encrypted secret messages.">
     {% load static %}
     <link rel="stylesheet" href="{% static 'style.css' %}">
@@ -30,15 +30,17 @@
     </script>
 </head>
 <body>
+<div class="site-toolbar">
 <!-- Sajilo Drop Logo -->
 <div class="site-logo">
     <a href="{% url 'index' %}" title="Refresh page">
-        <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
+        <img class="logo-base" src="{% static 'logo.png' %}" alt="Sajilo Drop">
+        <img class="logo-dark-text" src="{% static 'logo.png' %}" alt="" aria-hidden="true">
     </a>
 </div>
 
     <!-- =====================================================
-         Theme switcher — one button fixed to the top-right.
+         Theme switcher aligned with the logo.
          Click to cycle: System → Light → Dark → System.
          ===================================================== -->
     <div class="theme-switcher" role="group" aria-label="Color theme">
@@ -53,12 +55,14 @@
     </div>
 
 
+</div>
+
     <!-- =====================================================
          Page header
          ===================================================== -->
     <header class="page-header">
     <h1>Share Text <span>Securely</span></h1>
-    <p>Real-time shared clipboard &mdash; type here, see it everywhere.</p>
+    <p>Real-time shared clipboard: type here, see it everywhere.</p>
 </header>
 
 
@@ -89,10 +93,10 @@
         <div class="gap-sm"></div>
 
         <!-- Arrow button: copy shared text down into the secret box -->
-        <div class="flex-row">
-            <button type="button" class="btn-circle" onclick="copyToInput()" title="Copy to secret input">&#8595;</button>
-            <span class="hint">copy down to secret box</span>
-        </div>
+        <button type="button" class="btn-ghost btn-transfer" onclick="copyToInput()">
+            <span class="transfer-arrow" aria-hidden="true">&#8595;</span>
+            <span>Copy down to secret box</span>
+        </button>
 
         <div class="divider"></div>
 
@@ -107,7 +111,7 @@
              ===================================================== -->
         <div id="secretContainer">
 
-            <div class="gap"></div>
+
 
             <!-- Small section header inside the secret panel -->
             <div class="secret-panel-header">
@@ -121,62 +125,40 @@
                 <span>Encrypt / Decrypt</span>
             </div>
 
-            <div class="flex-col">
-
-                <!-- Input: paste the message to encrypt, or the ciphertext to decrypt -->
+            <div class="secret-fields">
                 <div>
                     <label class="label" for="secretInput">Input</label>
                     <textarea id="secretInput" placeholder="Message to encrypt, or ciphertext to decrypt…"></textarea>
                 </div>
 
-                <!-- Output: result appears here (read-only) -->
-                <!-- Passkey -->
-<div>
-    <label class="label" for="passkey">Passkey</label>
+                <div>
+                    <label class="label" for="passkey">Passkey</label>
+                    <form onsubmit="return false;">
+                        <input type="text" id="passkey" name="passkey"
+                               autocomplete="off" placeholder="8–15 characters">
+                    </form>
+                </div>
 
-    <form onsubmit="return false;">
-        <input type="text"
-               id="passkey"
-               name="passkey"
-               autocomplete="off"
-               placeholder="8–15 characters">
-    </form>
-</div>
+                <div class="secret-actions">
+                    <button type="button" class="btn-primary" onclick="encryptMessage()">Encrypt</button>
+                    <button type="button" class="btn-ghost" onclick="decryptMessage()">Decrypt</button>
+                </div>
 
-<!-- Encrypt / Decrypt buttons -->
-<div class="flex-row">
-    <button type="button"
-            class="btn-primary"
-            onclick="encryptMessage()">Encrypt</button>
+                <div id="error" role="alert"></div>
 
-    <button type="button"
-            class="btn-ghost"
-            onclick="decryptMessage()">Decrypt</button>
-</div>
+                <div>
+                    <label class="label" for="output">Output</label>
+                    <textarea id="output" readonly placeholder="Result will appear here…"></textarea>
+                </div>
 
-<!-- Error message -->
-<div id="error"></div>
+                <button type="button" class="btn-ghost btn-transfer" onclick="copyToSharedText()">
+                    <span class="transfer-arrow" aria-hidden="true">&#8593;</span>
+                    <span>Push output up to shared text</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
-<!-- Output -->
-<div>
-    <label class="label" for="output">Output</label>
-
-    <textarea id="output"
-              readonly
-              placeholder="Result will appear here…"></textarea>
-</div>
-
-<!-- Push output back to shared text -->
-<div class="flex-row">
-    <button type="button"
-            class="btn-circle"
-            onclick="copyToSharedText()"
-            title="Send output to shared text">&#8593;</button>
-
-    <span class="hint">push output up to shared text</span>
-</div>
-
-            
     <script>
 
     /* ==========================================================
