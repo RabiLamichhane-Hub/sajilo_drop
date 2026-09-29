@@ -4,15 +4,9 @@
 <head>
 
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Sajilo Drop — Shared Clipboard</title>
-
-    <meta name="description"
-          content="Real-time shared clipboard with optional encrypted secret messages.">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sajilo Drop - Shared Clipboard</title>
+    <meta name="description" content="Real-time shared clipboard with optional encrypted secret messages.">
     {% load static %}
 
     <link rel="stylesheet"
@@ -79,65 +73,39 @@
 
 
 <body>
-
-
-<!-- Logo -->
-
+<div class="site-toolbar">
+<!-- Sajilo Drop Logo -->
 <div class="site-logo">
-
-    <a href="{% url 'index' %}"
-       title="Refresh page">
-
-        <img src="{% static 'logo.png' %}"
-             alt="Sajilo Drop">
-
+    <a href="{% url 'index' %}" title="Refresh page">
+        <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
     </a>
 
 </div>
 
+    <!-- =====================================================
+         Theme switcher aligned with the logo.
+         Click to cycle: System → Light → Dark → System.
+         ===================================================== -->
+    <div class="theme-switcher" role="group" aria-label="Color theme">
+        <button class="theme-cycle-btn" id="themeCycleBtn"
+                onclick="cycleTheme()" title="Change theme">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+            </svg>
+            <span id="themeText">System</span>
+        </button>
+    </div>
 
-<!-- Theme switcher -->
-
-<div class="theme-switcher"
-     role="group"
-     aria-label="Color theme">
-
-    <button class="theme-cycle-btn"
-            id="themeCycleBtn"
-            onclick="cycleTheme()"
-            title="Change theme">
-
-        <svg id="themeIcon"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round">
-        </svg>
-
-        <span id="themeText">
-            System
-        </span>
-
-    </button>
 
 </div>
 
-
-<!-- Page header -->
-
-<header class="page-header">
-
-    <h1>
-        Share Text <span>Securely</span>
-    </h1>
-
-    <p>
-        Real-time shared clipboard &mdash;
-        type here, see it everywhere.
-    </p>
-
+    <!-- =====================================================
+         Page header
+         ===================================================== -->
+    <header class="page-header">
+    <h1>Share Text <span>Securely</span></h1>
+    <p>Real-time shared clipboard: type here, see it everywhere.</p>
 </header>
 
 
@@ -192,26 +160,11 @@
 
     <div class="gap-sm"></div>
 
-
-    <!-- Copy shared text to secret box -->
-
-    <div class="flex-row">
-
-        <button type="button"
-                class="btn-circle"
-                onclick="copyToInput()"
-                title="Copy to secret input">
-
-            &#8595;
-
+        <!-- Arrow button: copy shared text down into the secret box -->
+        <button type="button" class="btn-ghost btn-transfer" onclick="copyToInput()">
+            <span class="transfer-arrow" aria-hidden="true">&#8595;</span>
+            <span>Copy down to secret box</span>
         </button>
-
-        <span class="hint">
-            copy down to secret box
-        </span>
-
-    </div>
-
 
     <div class="divider"></div>
 
@@ -232,7 +185,7 @@
     <div id="secretContainer">
 
 
-        <div class="gap"></div>
+            <div class="gap"></div>
 
 
         <!-- Secret panel header -->
@@ -266,167 +219,55 @@
         </div>
 
 
-        <div class="flex-col">
-
-
-            <!-- Input -->
-
-            <div>
-
-                <label class="label"
-                       for="secretInput">
-
-                    Input
-
-                </label>
-
-                <textarea
-                    id="secretInput"
-                    placeholder="Message to encrypt, or ciphertext to decrypt…"></textarea>
-
-            </div>
-
-
-            <!-- Passkey -->
-
-            <div>
-
-                <label class="label"
-                       for="passkey">
-
-                    Passkey
-
-                </label>
-
-                <form onsubmit="return false;">
-
-                    <input type="text"
-                           id="passkey"
-                           name="passkey"
-                           autocomplete="off"
-                           placeholder="8–15 characters">
-
-                </form>
-
-            </div>
-
-
-            <!-- Encrypt / Decrypt buttons -->
-
-            <div class="flex-row">
-
-                <button type="button"
-                        class="btn-primary"
-                        onclick="encryptMessage()">
-
-                    Encrypt
-
-                </button>
-
-                <button type="button"
-                        class="btn-ghost"
-                        onclick="decryptMessage()">
-
-                    Decrypt
-
-                </button>
-
-            </div>
-
-
-            <!-- Error -->
-
-            <div id="error"></div>
-
-
-            <!-- Output -->
-
-            <div>
-
-                <label class="label"
-                       for="output">
-
-                    Output
-
-                </label>
-
-                <textarea
-                    id="output"
-                    readonly
-                    placeholder="Result will appear here…"></textarea>
-
-            </div>
-
-
-            <!-- Push output back to shared text -->
-
-            <div class="flex-row">
-
-                <button type="button"
-                        class="btn-circle"
-                        onclick="copyToSharedText()"
-                        title="Send output to shared text">
-
-                    &#8593;
-
-                </button>
-
-                <span class="hint">
-                    push output up to shared text
-                </span>
-
-            </div>
-
-
-        </div>
-
-    </div>
-
-
-</div>
-
-
-<!-- FAQs -->
-
-{% if faqs %}
-
-    <section class="faqs">
-
-        <button type="button"
-                onclick="toggleFAQs()">
-
-            FAQs
-
-        </button>
-
-
-        <div id="faqContainer"
-             style="display: none;">
-
-            {% for faq in faqs %}
-
-                <div class="faq">
-
-                    <h3>
-                        {{ faq.name }}
-                    </h3>
-
-                    <p>
-                        {{ faq.acceptedAnswer.text }}
-                    </p>
-
+            <div class="secret-fields">
+                <div>
+                    <label class="label" for="secretInput">Input</label>
+                    <textarea id="secretInput" placeholder="Message to encrypt, or ciphertext to decrypt…"></textarea>
                 </div>
 
-            {% endfor %}
+                <div>
+                    <label class="label" for="passkey">Passkey</label>
+                    <form onsubmit="return false;">
+                        <input type="text" id="passkey" name="passkey"
+                               autocomplete="off" placeholder="8–15 characters">
+                    </form>
+                </div>
 
-        </div>
+<!-- Encrypt / Decrypt buttons -->
+<div class="flex-row">
+    <button type="button"
+            class="btn-primary"
+            onclick="encryptMessage()">Encrypt</button>
 
-    </section>
+    <button type="button"
+            class="btn-ghost"
+            onclick="decryptMessage()">Decrypt</button>
+</div>
 
-{% endif %}
+<!-- Error message -->
+<div id="error"></div>
 
+<!-- Output -->
+<div>
+    <label class="label" for="output">Output</label>
 
-<script>
+    <textarea id="output"
+              readonly
+              placeholder="Result will appear here…"></textarea>
+</div>
+
+<!-- Push output back to shared text -->
+<div class="flex-row">
+    <button type="button"
+            class="btn-circle"
+            onclick="copyToSharedText()"
+            title="Send output to shared text">&#8593;</button>
+
+    <span class="hint">push output up to shared text</span>
+</div>
+
+            
+    <script>
 
 
 /* =========================================================
