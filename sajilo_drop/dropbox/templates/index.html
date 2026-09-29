@@ -77,7 +77,8 @@
 <!-- Sajilo Drop Logo -->
 <div class="site-logo">
     <a href="{% url 'index' %}" title="Refresh page">
-        <img src="{% static 'logo.png' %}" alt="Sajilo Drop">
+        <img class="logo-base" src="{% static 'logo.png' %}" alt="Sajilo Drop">
+        <img class="logo-dark-text" src="{% static 'logo.png' %}" alt="" aria-hidden="true">
     </a>
 
 </div>
@@ -185,7 +186,7 @@
     <div id="secretContainer">
 
 
-            <div class="gap"></div>
+
 
 
         <!-- Secret panel header -->
@@ -233,41 +234,87 @@
                     </form>
                 </div>
 
-<!-- Encrypt / Decrypt buttons -->
-<div class="flex-row">
-    <button type="button"
-            class="btn-primary"
-            onclick="encryptMessage()">Encrypt</button>
+                <div class="secret-actions">
+                    <button type="button" class="btn-primary" onclick="encryptMessage()">Encrypt</button>
+                    <button type="button" class="btn-ghost" onclick="decryptMessage()">Decrypt</button>
+                </div>
 
-    <button type="button"
-            class="btn-ghost"
-            onclick="decryptMessage()">Decrypt</button>
+                <div id="error" role="alert"></div>
+
+                <div>
+                    <label class="label" for="output">Output</label>
+                    <textarea id="output" readonly placeholder="Result will appear here…"></textarea>
+                </div>
+
+            <!-- Push output back to shared text -->
+
+            <div class="flex-row">
+
+                <button type="button"
+                        class="btn-circle"
+                        onclick="copyToSharedText()"
+                        title="Send output to shared text">
+
+                    &#8593;
+
+                </button>
+
+                <span class="hint">
+                    push output up to shared text
+                </span>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
 </div>
 
-<!-- Error message -->
-<div id="error"></div>
 
-<!-- Output -->
-<div>
-    <label class="label" for="output">Output</label>
+<!-- FAQs -->
 
-    <textarea id="output"
-              readonly
-              placeholder="Result will appear here…"></textarea>
-</div>
+{% if faqs %}
 
-<!-- Push output back to shared text -->
-<div class="flex-row">
-    <button type="button"
-            class="btn-circle"
-            onclick="copyToSharedText()"
-            title="Send output to shared text">&#8593;</button>
+    <section class="faqs">
 
-    <span class="hint">push output up to shared text</span>
-</div>
+        <button type="button"
+                onclick="toggleFAQs()">
 
-            
-    <script>
+            FAQs
+
+        </button>
+
+
+        <div id="faqContainer"
+             style="display: none;">
+
+            {% for faq in faqs %}
+
+                <div class="faq">
+
+                    <h3>
+                        {{ faq.name }}
+                    </h3>
+
+                    <p>
+                        {{ faq.acceptedAnswer.text }}
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+{% endif %}
+
+
+<script>
 
 
 /* =========================================================
