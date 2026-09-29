@@ -32,3 +32,15 @@ class Message(models.Model):
 
     def __str__(self):
         return self.content[:50]
+
+
+
+class JSONLDSchema(models.Model):
+    name = models.CharField(max_length=255)
+    schema = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name

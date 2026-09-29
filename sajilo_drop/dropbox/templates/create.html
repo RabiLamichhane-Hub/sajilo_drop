@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create JSON-LD</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .name-field {
+            margin-bottom: 30px;
+        }
+
+        .name-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .name-field input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        th {
+            background: #f0f0f0;
+            text-align: left;
+        }
+
+        td input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .add-button {
+            margin-top: 15px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #222;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .remove-button {
+            border: none;
+            background: #dc3545;
+            color: white;
+            padding: 7px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .save-button {
+            margin-top: 30px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            background: #222;
+            color: white;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background: #444;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Create JSON-LD Schema</h1>
+
+    <form method="POST" id="schema-form">
+
+        {% csrf_token %}
+
+        <div class="name-field">
+
+            <label for="{{ form.name.id_for_label }}">
+                Schema Name
+            </label>
+
+            {{ form.name }}
+
+        </div>
+
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                    <th>Action</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="schema-table">
+
+                <tr>
+
+                    <td>
+                        <input
+                            type="text"
+                            class="key-input"
+                            placeholder="Key"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            class="value-input"
+                            placeholder="Value"
+                        >
+                    </td>
+
+                    <td>
+                        <button
+                            type="button"
+                            class="remove-button"
+                            onclick="removeRow(this)"
+                        >
+                            ×
+                        </button>
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+
+        <button
+            type="button"
+            class="add-button"
+            onclick="addRow()"
+        >
+            +
+        </button>
+
+
+        <!-- JavaScript will put the generated JSON here -->
+
+        <input
+            type="hidden"
+            name="schema"
+            id="schema-data"
+        >
+
+
+        <br>
+
+
+        <button
+            type="submit"
+            class="save-button"
+        >
+            Save JSON-LD
+        </button>
+
+    </form>
+
+</div>
+
+
+<script>
+
+    const table = document.getElementById("schema-table");
+    const form = document.getElementById("schema-form");
+    const schemaInput = document.getElementById("schema-data");
+
+
+    /*
+     * Add another key/value row
+     */
+
+    function addRow() {
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>
+                <input
+                    type="text"
+                    class="key-input"
+                    placeholder="Key"
+                >
+            </td>
+
+            <td>
+                <input
+                    type="text"
+                    class="value-input"
+                    placeholder="Value"
+                >
+            </td>
+
+            <td>
+                <button
+                    type="button"
+                    class="remove-button"
+                    onclick="removeRow(this)"
+                >
+                    ×
+                </button>
+            </td>
+        `;
+
+        table.appendChild(row);
+    }
+
+
+    /*
+     * Remove a row
+     */
+
+    function removeRow(button) {
+
+        const rows = table.querySelectorAll("tr");
+
+        if (rows.length > 1) {
+            button.closest("tr").remove();
+        }
+
+    }
+
+
+    /*
+     * Convert table → JSON
+     */
+
+    form.addEventListener("submit", function(event) {
+
+        const schema = {};
+
+        const rows = table.querySelectorAll("tr");
+
+
+        rows.forEach(function(row) {
+
+            const key =
+                row.querySelector(".key-input").value.trim();
+
+            const value =
+                row.querySelector(".value-input").value.trim();
+
+
+            if (key !== "") {
+                schema[key] = value;
+            }
+
+        });
+
+
+        /*
+         * Convert JavaScript object into JSON string
+         */
+
+        schemaInput.value = JSON.stringify(schema);
+
+    });
+
+</script>
+
+</body>
+
+</html>

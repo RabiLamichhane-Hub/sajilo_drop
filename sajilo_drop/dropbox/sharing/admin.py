@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Message
+from .models import Message, JSONLDSchema
 
 # Register your models here.
 
@@ -12,3 +12,6 @@ class MessageAdmin(admin.ModelAdmin):
     def content_preview(self, obj):
         return obj.content[:60]
     content_preview.short_description = "Content"
+
+
+admin.site.register(JSONLDSchema)

@@ -1,17 +1,38 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
-from .models import Message
-
+from .models import Message, JSONLDSchema
+from . forms import JSONLDSchemaForm
+import json
+from pprint import pprint
 from .utils import get_client_ip
 
+
 @ratelimit(key='ip', rate='60/m')
-def index(req):
-    ip_addr = get_client_ip(req.META)
+def index(request):
+    ip_addr = get_client_ip(request.META)
+
     obj, created = Message.objects.get_or_create(ip=ip_addr)
+
     if created:
         obj.content = "Nothing to see here!"
-    return render(req, 'index.html', {'obj': obj})
+        obj.save()
+
+    schemas = JSONLDSchema.objects.all()
+
+    faqs = []
+
+    for schema in schemas:
+        if schema.schema.get("@type") == "FAQPage":
+            faqs = schema.schema.get("mainEntity", [])
+            break
+
+    return render(request, "index.html", {
+        "obj": obj,
+        "schemas": schemas,
+        "faqs": faqs,
+    })
+
 
 @ratelimit(key='ip', rate='30/m', method='POST', block=False)
 def upload(req):
@@ -65,3 +86,37 @@ def redis_test(request):
     return JsonResponse({
         "value": value
     })
+
+
+
+def create_jsonld(request):
+
+    if request.method == "POST":
+        form = JSONLDSchemaForm(request.POST)
+
+        if form.is_valid():
+
+            schema_data = request.POST.get("schema")
+
+            try:
+                schema_data = json.loads(schema_data)
+            except (json.JSONDecodeError, TypeError):
+                form.add_error(None, "Invalid JSON data.")
+            else:
+                jsonld = form.save(commit=False)
+                jsonld.schema = schema_data
+                jsonld.save()
+
+                return redirect("jsonld_success")
+
+    else:
+        form = JSONLDSchemaForm()
+
+    return render(request, "create.html", {
+        "form": form
+    })
+
+
+def jsonld_success(request):
+    return render(request, "success.html")
+
