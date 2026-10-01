@@ -1,27 +1,25 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
-from .models import Message, JSONLDSchema
-from . forms import JSONLDSchemaForm
+from .models import Message, JSONLDSchema, SharedFile
+from . forms import JSONLDSchemaForm, SharedFileForm
 import json
 from pprint import pprint
 from .utils import get_client_ip
 
 
-@ratelimit(key='ip', rate='60/m')
 def index(request):
     ip_addr = get_client_ip(request.META)
-
     obj, created = Message.objects.get_or_create(ip=ip_addr)
-
     if created:
         obj.content = "Nothing to see here!"
         obj.save()
 
+    file_form = SharedFileForm()
     schemas = JSONLDSchema.objects.all()
+    shared_files = SharedFile.objects.all().order_by('-uploaded_at')
 
     faqs = []
-
     for schema in schemas:
         if schema.schema.get("@type") == "FAQPage":
             faqs = schema.schema.get("mainEntity", [])
@@ -30,8 +28,11 @@ def index(request):
     return render(request, "index.html", {
         "obj": obj,
         "schemas": schemas,
+        "file_form": file_form,
+        "shared_files": shared_files,
         "faqs": faqs,
     })
+
 
 
 @ratelimit(key='ip', rate='30/m', method='POST', block=False)
@@ -87,7 +88,21 @@ def redis_test(request):
         "value": value
     })
 
-
+@ratelimit(key='ip', rate='20/m', method='POST', block=False)
+def upload_file(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse(
+            {"error": "Too many requests. Please slow down."},
+            status=429
+        )
+    if request.method == "POST":
+        form = SharedFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            shared_file = form.save(commit=False)
+            shared_file.ip_address = get_client_ip(request.META)
+            shared_file.save()
+            return redirect("index")
+    return redirect("index")
 
 def create_jsonld(request):
 

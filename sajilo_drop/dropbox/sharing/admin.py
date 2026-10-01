@@ -1,7 +1,10 @@
 from django.contrib import admin
-from .models import Message, JSONLDSchema
+from .models import Message, JSONLDSchema, SharedFile
 
-# Register your models here.
+@admin.register(SharedFile)
+class SharedFileAdmin(admin.ModelAdmin):
+    list_display = ('file', 'ip_address', 'uploaded_at')
+    readonly_fields = ('uploaded_at',)
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
@@ -12,6 +15,5 @@ class MessageAdmin(admin.ModelAdmin):
     def content_preview(self, obj):
         return obj.content[:60]
     content_preview.short_description = "Content"
-
 
 admin.site.register(JSONLDSchema)

@@ -273,6 +273,31 @@
 
 </div>
 
+<!-- File Sharing -->
+<form method="post"
+      action="{% url 'upload_file' %}"
+      enctype="multipart/form-data">
+
+    {% csrf_token %}
+
+    {{ file_form.file }}
+
+    <button type="submit" class="btn-primary">
+        Upload File
+    </button>
+
+</form>
+
+{% for shared_file in shared_files %}
+    <div>
+        <a href="{{ shared_file.file.url }}" download>
+            {{ shared_file.file.name }}
+        </a>
+    </div>
+{% empty %}
+    <p>No files shared.</p>
+{% endfor %}
+
 
 <!-- FAQs -->
 

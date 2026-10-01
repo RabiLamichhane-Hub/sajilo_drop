@@ -9,14 +9,9 @@ class Message(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-
     ip = models.GenericIPAddressField()
-
-
     content = models.TextField()
-
     created_at = models.DateTimeField(auto_now_add=True)
-
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
@@ -44,3 +39,16 @@ class JSONLDSchema(models.Model):
 
     def __str__(self):
         return self.name
+
+
+
+class SharedFile(models.Model):
+    file = models.FileField(upload_to="shared_files/")
+    ip_address = models.GenericIPAddressField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file.name
+
+    class Meta:
+        managed = True
