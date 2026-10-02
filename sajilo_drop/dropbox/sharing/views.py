@@ -5,6 +5,7 @@ from .models import Message, JSONLDSchema, SharedFile
 from . forms import JSONLDSchemaForm, SharedFileForm
 import json
 from .utils import get_client_ip
+from django.shortcuts import get_object_or_404
 
 
 from datetime import timedelta
@@ -123,6 +124,27 @@ def upload_file(request):
             shared_file.ip_address = get_client_ip(request.META)
             shared_file.save()
             return redirect("index")
+    return redirect("index")
+
+@ratelimit(key='ip', rate='20/m', method='POST', block=False)
+def delete_file(request, file_id):
+    if getattr(request, 'limited', False):
+        return JsonResponse(
+            {"error": "Too many requests. Please slow down."},
+            status=429
+        )
+
+    if request.method == "POST":
+        shared_file = get_object_or_404(SharedFile, id=file_id)
+
+        if shared_file.ip_address != get_client_ip(request.META):
+            return JsonResponse(
+                {"error": "You are not allowed to delete this file."},
+                status=403
+            )
+
+        shared_file.delete()
+
     return redirect("index")
 
 def create_jsonld(request):
