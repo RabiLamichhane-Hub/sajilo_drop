@@ -303,7 +303,13 @@
                 <span class="file-name">{{ shared_file.file.name }}</span>
                 <span class="hint">{{ shared_file.file.size|filesizeformat }}</span>
             </div>
-            <a class="file-download" href="{{ shared_file.file.url }}" download aria-label="Download {{ shared_file.file.name }}">Download &#8595;</a>
+            <div class="shared-file-actions">
+                <a class="file-download" href="{{ shared_file.file.url }}" download aria-label="Download {{ shared_file.file.name }}">Download &#8595;</a>
+                <form class="file-delete-form" method="post" action="{% url 'delete_file' shared_file.id %}">
+                    {% csrf_token %}
+                    <button class="file-delete" type="submit" aria-label="Delete {{ shared_file.file.name }}">Delete</button>
+                </form>
+            </div>
         </li>
         {% empty %}
         <li class="empty-files">No files shared yet.<span class="hint">Uploaded files will appear here.</span></li>
