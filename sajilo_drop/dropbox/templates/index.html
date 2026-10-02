@@ -8,6 +8,7 @@
     <title>Sajilo Drop - Shared Clipboard</title>
     <meta name="description" content="Real-time shared clipboard with optional encrypted secret messages.">
     {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
 
     <link rel="stylesheet"
           href="{% static 'style.css' %}">
@@ -105,14 +106,15 @@
          Page header
          ===================================================== -->
     <header class="page-header">
-    <h1>Share Text <span>Securely</span></h1>
+    <h1>Share text &amp; files <span>securely</span></h1>
     <p>Real-time shared clipboard: type here, see it everywhere.</p>
 </header>
 
 
+<main class="sharing-grid">
 <!-- Main card -->
 
-<div class="card">
+<div class="card text-card">
 
 
     <!-- Card top row -->
@@ -120,22 +122,19 @@
     <div class="flex-row space-between"
          style="margin-bottom: 0.75rem;">
 
-        <span class="label"
+        <label class="label card-title" for="textarea"
               style="margin-bottom: 0;">
 
             Shared text
 
-        </span>
+        </label>
 
 
         <span class="flex-row"
-              style="gap: 0.4rem;">
+              style="gap: 0.6rem;">
 
-            <span class="live-dot"></span>
-
-            <span class="hint">
-                live sync
-            </span>
+            <span class="hint">live sync</span>
+            <span class="live-dot" aria-hidden="true"></span>
 
         </span>
 
@@ -162,10 +161,12 @@
     <div class="gap-sm"></div>
 
         <!-- Arrow button: copy shared text down into the secret box -->
-        <button type="button" class="btn-ghost btn-transfer" onclick="copyToInput()">
-            <span class="transfer-arrow" aria-hidden="true">&#8595;</span>
-            <span>Copy down to secret box</span>
-        </button>
+        <div class="transfer-row">
+            <span class="hint">Copy down to secret box</span>
+            <button type="button" class="btn-circle" onclick="copyToInput()" aria-label="Copy down to secret box" title="Copy down to secret box">
+                <span aria-hidden="true">&#8595;</span>
+            </button>
+        </div>
 
     <div class="divider"></div>
 
@@ -174,7 +175,7 @@
 
     <button type="button"
             class="btn-ghost"
-            id="toggleSecretBtn"
+            id="toggleSecretBtn" aria-expanded="false" aria-controls="secretContainer"
             onclick="toggleSecretBox()"
             style="width: 100%;">
 
@@ -248,22 +249,12 @@
 
             <!-- Push output back to shared text -->
 
-            <div class="flex-row">
-
-                <button type="button"
-                        class="btn-circle"
-                        onclick="copyToSharedText()"
-                        title="Send output to shared text">
-
-                    &#8593;
-
-                </button>
-
-                <span class="hint">
-                    push output up to shared text
-                </span>
-
-            </div>
+            <div class="transfer-row">
+            <span class="hint">Push output up to shared text</span>
+            <button type="button" class="btn-circle" onclick="copyToSharedText()" aria-label="Push output up to shared text" title="Push output up to shared text">
+                <span aria-hidden="true">&#8593;</span>
+            </button>
+        </div>
 
 
         </div>
@@ -274,73 +265,104 @@
 </div>
 
 <!-- File Sharing -->
-<form method="post"
-      action="{% url 'upload_file' %}"
-      enctype="multipart/form-data">
-
-    {% csrf_token %}
-
-    {{ file_form.file }}
-
-    <button type="submit" class="btn-primary">
-        Upload File
-    </button>
-
-</form>
-
-{% for shared_file in shared_files %}
-    <div>
-        <a href="{{ shared_file.file.url }}" download>
-            {{ shared_file.file.name }}
-        </a>
+<section class="card file-card" aria-labelledby="filesTitle">
+    <div class="file-heading">
+        <h2 class="label card-title" id="filesTitle">Shared files</h2>
+        <span class="hint">Upload &amp; download</span>
     </div>
-{% empty %}
-    <p>No files shared.</p>
-{% endfor %}
-
-
-<!-- FAQs -->
+    <form class="file-upload" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="upload-area">
+            <p class="label" id="filePickerLabel">Choose a file to share</p>
+            <p class="hint">Select a file from your device.</p>
+            <div class="file-picker" id="filePicker">
+                {{ file_form.file }}
+                <div class="file-picker-display">
+                    <button type="button" class="file-picker-button" id="chooseFileBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+                        Choose file
+                    </button>
+                    <div class="selected-file-info">
+                        <span class="file-picker-name" id="selectedFileName">No file selected</span>
+                        <span class="hint" id="selectedFileSize"></span>
+                    </div>
+                </div>
+            </div>
+            <span class="file-picker-status" id="filePickerStatus" role="status"></span>
+            {{ file_form.file.errors }}
+            {{ file_form.non_field_errors }}
+        </div>
+        <button type="submit" class="btn-primary">Upload file</button>
+    </form>
+    <div class="divider"></div>
+    <h3 class="label">Available files</h3>
+    <ul class="file-list">
+        {% for shared_file in shared_files %}
+        <li class="shared-file-row">
+            <div class="shared-file-info">
+                <span class="file-name">{{ shared_file.file.name }}</span>
+                <span class="hint">{{ shared_file.file.size|filesizeformat }}</span>
+            </div>
+            <a class="file-download" href="{{ shared_file.file.url }}" download aria-label="Download {{ shared_file.file.name }}">Download &#8595;</a>
+        </li>
+        {% empty %}
+        <li class="empty-files">No files shared yet.<span class="hint">Uploaded files will appear here.</span></li>
+        {% endfor %}
+    </ul>
+</section>
+</main>
 
 {% if faqs %}
-
-    <section class="faqs">
-
-        <button type="button"
-                onclick="toggleFAQs()">
-
-            FAQs
-
-        </button>
-
-
-        <div id="faqContainer"
-             style="display: none;">
-
-            {% for faq in faqs %}
-
-                <div class="faq">
-
-                    <h3>
-                        {{ faq.name }}
-                    </h3>
-
-                    <p>
-                        {{ faq.acceptedAnswer.text }}
-                    </p>
-
-                </div>
-
-            {% endfor %}
-
-        </div>
-
-    </section>
-
+<section class="faqs" aria-label="Frequently asked questions">
+    <button type="button" class="btn-ghost faq-toggle" id="faqToggle" onclick="toggleFAQs()" aria-expanded="false" aria-controls="faqContainer">
+        FAQs <span class="faq-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <div id="faqContainer" hidden>
+        {% for faq in faqs %}
+        <details class="faq">
+            <summary>{{ faq.name }}</summary>
+            <div class="faq-answer"><p>{{ faq.acceptedAnswer.text }}</p></div>
+        </details>
+        {% endfor %}
+    </div>
+</section>
 {% endif %}
 
 
 <script>
 
+
+/* Keep Django's native file input and enhance its presentation. */
+(function () {
+    const picker = document.getElementById('filePicker');
+    const input = picker.querySelector('input[type="file"]');
+    const name = document.getElementById('selectedFileName');
+    const status = document.getElementById('filePickerStatus');
+    if (!input) return;
+    const size = document.getElementById('selectedFileSize');
+    const chooseButton = document.getElementById('chooseFileBtn');
+    input.setAttribute('aria-labelledby', 'filePickerLabel');
+    input.tabIndex = -1;
+    chooseButton.addEventListener('click', () => input.click());
+    input.addEventListener('invalid', () => chooseButton.focus());
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 bytes';
+        const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+        const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        return (bytes / Math.pow(1024, unit)).toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' ' + units[unit];
+    }
+    function updateFileName() {
+        const file = input.files && input.files[0];
+        name.textContent = file ? file.name : 'No file selected';
+        name.title = file ? file.name : '';
+        size.textContent = file ? formatFileSize(file.size) : '';
+        picker.classList.toggle('has-file', Boolean(file));
+        status.textContent = file ? 'Selected: ' + file.name + ', ' + formatFileSize(file.size) : '';
+    }
+    input.addEventListener('change', updateFileName);
+    picker.classList.add('enhanced');
+    updateFileName();
+})();
 
 /* =========================================================
    THEME
@@ -859,6 +881,8 @@ function toggleSecretBox() {
         );
 
 
+    btn.setAttribute("aria-expanded", String(secretOpen));
+
     if (secretOpen) {
 
         container.classList.add(
@@ -889,6 +913,8 @@ function toggleSecretBox() {
 /* Copy shared text into secret input */
 
 function copyToInput() {
+    if (!secretOpen) toggleSecretBox();
+    document.getElementById("secretInput").focus();
 
     document.getElementById(
         "secretInput"
@@ -926,30 +952,13 @@ function copyToSharedText() {
 
 
 function toggleFAQs() {
-
-    const faqContainer =
-        document.getElementById(
-            "faqContainer"
-        );
-
-
-    if (
-        faqContainer.style.display
-        === "none"
-    ) {
-
-        faqContainer.style.display =
-            "block";
-
+    const container = document.getElementById("faqContainer");
+    const button = document.getElementById("faqToggle");
+    container.hidden = !container.hidden;
+    button.setAttribute("aria-expanded", String(!container.hidden));
+    if (container.hidden) {
+        container.querySelectorAll("details").forEach(item => item.open = false);
     }
-
-    else {
-
-        faqContainer.style.display =
-            "none";
-
-    }
-
 }
 
 
