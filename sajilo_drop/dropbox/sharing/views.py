@@ -4,22 +4,43 @@ from django_ratelimit.decorators import ratelimit
 from .models import Message, JSONLDSchema, SharedFile
 from . forms import JSONLDSchemaForm, SharedFileForm
 import json
-from pprint import pprint
 from .utils import get_client_ip
+
+
+from datetime import timedelta
+from django.utils import timezone
 
 
 def index(request):
     ip_addr = get_client_ip(request.META)
+
     obj, created = Message.objects.get_or_create(ip=ip_addr)
+
     if created:
         obj.content = "Nothing to see here!"
         obj.save()
 
+    # Delete files older than 24 hours
+    expiry_time = timezone.now() - timedelta(hours=24)
+
+    expired_files = SharedFile.objects.filter(
+        uploaded_at__lt=expiry_time
+    )
+
+    for shared_file in expired_files:
+        shared_file.file.delete(save=False)
+        shared_file.delete()
+
     file_form = SharedFileForm()
+
     schemas = JSONLDSchema.objects.all()
-    shared_files = SharedFile.objects.all().order_by('-uploaded_at')
+
+    shared_files = SharedFile.objects.filter(
+        uploaded_at__gte=expiry_time
+    ).order_by("-uploaded_at")
 
     faqs = []
+
     for schema in schemas:
         if schema.schema.get("@type") == "FAQPage":
             faqs = schema.schema.get("mainEntity", [])
