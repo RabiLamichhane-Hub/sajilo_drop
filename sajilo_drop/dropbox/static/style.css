@@ -13,16 +13,16 @@
 }
 
 :root {
-    --color-bg: #111113;
-    --color-bg-2: #18181b;
+    --color-bg: #000000;
+    --color-bg-2: #000000;
     --color-surface: rgba(31, 31, 35, 0.94);
     --color-surface-solid: #202024;
     --color-input: #29292e;
     --color-border: rgba(255, 255, 255, 0.12);
 
-    --color-accent: #6d28d9;
-    --color-accent-hover: #7c3aed;
-    --color-highlight: #c4b5fd;
+    --color-accent: #007f91;
+    --color-accent-hover: #0073c7;
+    --color-highlight: #21d4c4;
     --color-text: #f4f4f5;
     --color-dim: #b4b4bf;
     --color-error: #fb7185;
@@ -33,16 +33,16 @@
     --radius-lg: 22px;
     --radius-md: 13px;
     --radius-sm: 10px;
-    --accent-rgb: 167, 139, 250;
-    --highlight-rgb: 196, 181, 253;
-    --ambient-rgb: 120, 113, 145;
+    --accent-rgb: 0, 180, 190;
+    --highlight-rgb: 33, 212, 196;
+    --ambient-rgb: 0, 150, 190;
     --speed: 0.2s ease;
 }
 
 [data-theme="light"] {
     --accent-rgb: 6, 182, 212;
     --highlight-rgb: 103, 232, 249;
-    --ambient-rgb: 99, 102, 241;
+    --ambient-rgb: 0, 150, 190;
     --color-bg: #eef9ff;
     --color-bg-2: #dff5ff;
     --color-surface: rgba(255, 255, 255, 0.84);
@@ -613,3 +613,102 @@ button:focus-visible,
 :root:not([data-theme="light"]) .site-logo .logo-dark-text {
     display: block;
 }
+/* Balanced sharing workspace and logo-inspired teal/blue accents. */
+:root:not([data-theme="light"]) body { background: #000; }
+:root:not([data-theme="light"]) body::before { display: none; }
+.site-toolbar, .sharing-grid, .faqs { width: 100%; max-width: 1180px; }
+.page-header h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); letter-spacing: -.04em; line-height: 1.15; }
+.page-header p { max-width: 720px; font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.6; }
+.sharing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; align-items: stretch; }
+.sharing-grid .card { max-width: none; min-width: 0; }
+.card:hover { transform: none; }
+.label { font-size: 1.05rem; letter-spacing: 0; text-transform: none; color: var(--color-text); }
+.card-title { font-size: clamp(2rem, 3vw, 2.65rem); font-weight: 700; line-height: 1.15; letter-spacing: -.04em; }
+.btn-transfer { width: 100%; max-width: 100%; margin-left: 0; display: flex; flex-direction: row; justify-content: flex-end; gap: .45rem; text-align: right; font-size: .84rem; padding: .65rem 1rem; }
+.file-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.file-heading .label { margin: 0; }
+.file-upload { display: grid; gap: 1rem; }
+.upload-area { min-height: 200px; padding: 1.5rem 1rem; border: 1px dashed var(--color-accent); border-radius: var(--radius-md); background: var(--color-input); text-align: center; }
+.upload-icon { display: grid; place-items: center; width: 44px; height: 44px; margin: 0 auto .75rem; border-radius: 12px; color: var(--color-highlight); background: rgba(var(--accent-rgb), .12); font-size: 1.65rem; }
+input[type="file"] { display: block; width: 100%; min-width: 0; margin-top: 1rem; font: inherit; font-size: .8rem; color: var(--color-dim); }
+input[type="file"]::file-selector-button { padding: .65rem .8rem; margin-right: .65rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-solid); color: var(--color-text); cursor: pointer; }
+.file-list { list-style: none; display: grid; gap: .65rem; }
+.file-list a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text); text-decoration: none; background: var(--color-input); }
+.file-list a:hover { border-color: var(--color-accent); }
+.file-name { min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
+.download-label { flex-shrink: 0; color: var(--color-highlight); font-size: .75rem; }
+.empty-files { padding: 1.5rem 1rem; text-align: center; color: var(--color-dim); border: 1px solid var(--color-border); border-radius: 12px; }
+.empty-files .hint { display: block; margin-top: .3rem; }
+.errorlist { color: var(--color-error); list-style: none; margin-top: .5rem; }
+.faqs { margin-top: 2rem; position: relative; }
+.faq-toggle { margin: 0 auto; display: flex; min-width: 140px; }
+.faq-chevron { transition: transform .2s ease; }
+.faq-toggle[aria-expanded="true"] .faq-chevron { transform: rotate(180deg); }
+#faqContainer { max-width: 800px; margin: 1rem auto 0; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; background: var(--color-surface-solid); }
+[hidden] { display: none !important; }
+.faq + .faq { border-top: 1px solid var(--color-border); }
+.faq summary { position: relative; padding: 1.15rem 3rem 1.15rem 1.25rem; cursor: pointer; font-weight: 600; list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; position: absolute; right: 1.25rem; color: var(--color-highlight); }
+.faq[open] summary::after { content: "−"; }
+.faq[open] summary { color: var(--color-highlight); }
+.faq-answer { padding: 0 1.25rem 1.25rem; color: var(--color-dim); font-size: .9rem; line-height: 1.75; overflow-wrap: anywhere; }
+a:focus-visible, summary:focus-visible, input[type="file"]:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 3px; }
+@media (max-width: 800px) {
+    .sharing-grid { grid-template-columns: minmax(0, 1fr); }
+    .site-logo { width: 190px; }
+}
+@media (max-width: 400px) {
+    .file-heading { align-items: flex-start; flex-direction: column; }
+    .file-list a { align-items: flex-start; flex-direction: column; gap: .4rem; }
+    .card-title { font-size: 1.8rem; }
+}
+
+/* Editing shared text turns its status light red. */
+.text-card:has(#textarea:focus) .live-dot {
+    background: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+}
+.text-card:has(#textarea:focus) .live-dot::after { border-color: #ef4444; }
+.text-card > .space-between > .flex-row { flex-shrink: 0; white-space: nowrap; }
+.btn-transfer .transfer-arrow { order: 1; }
+.btn-transfer > span:last-child { order: 0; margin-left: 0; text-align: right; }
+
+/* Larger theme switcher for easier reading and tapping. */
+.theme-cycle-btn { min-width: 118px; min-height: 48px; padding: .75rem 1.1rem; font-size: .95rem; gap: .6rem; }
+.theme-cycle-btn svg { width: 19px; height: 19px; }
+
+/* Styled file selection with the native accessible control on top. */
+.file-picker { position: relative; margin-top: 1.2rem; min-width: 0; }
+.file-picker-display { display: none; }
+.file-picker.enhanced .file-picker-display { display: flex; align-items: center; gap: .9rem; padding: .45rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-solid); text-align: left; }
+.file-picker.enhanced input[type="file"] { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; opacity: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }
+.file-picker-button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; flex-shrink: 0; padding: .75rem .9rem; border-radius: 8px; color: #fff; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover)); font-size: .85rem; font-weight: 600; }
+.file-picker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: .5rem; color: var(--color-dim); font-size: .82rem; }
+.file-picker.has-file .file-picker-name { color: var(--color-text); }
+.file-picker-button:hover { filter: brightness(1.1); box-shadow: var(--shadow-accent); }
+.file-picker-button:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 3px; }
+.file-picker-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 420px) {
+    .file-picker.enhanced .file-picker-display { flex-direction: column; align-items: stretch; gap: .6rem; padding: .6rem; }
+    .file-picker-name { text-align: center; padding: 0 .2rem .2rem; }
+}
+
+/* Filename and size are separate from the file actions. */
+.selected-file-info, .shared-file-info { display: flex; flex-direction: column; gap: .2rem; min-width: 0; flex: 1; }
+.shared-file-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-input); }
+.file-list .file-download { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: .65rem .85rem; color: var(--color-highlight); background: var(--color-surface-solid); border: 1px solid var(--color-accent); border-radius: 8px; font-size: .8rem; font-weight: 600; }
+.file-list .file-download:hover { background: rgba(var(--accent-rgb), .15); }
+@media (max-width: 420px) {
+    .selected-file-info { text-align: center; }
+    .shared-file-row { align-items: stretch; flex-direction: column; gap: .75rem; }
+    .file-list .file-download { align-self: flex-end; }
+}
+
+/* Match the light-theme blue in the heading in both themes. */
+.page-header h1 span { color: #0284c7; text-shadow: 0 0 24px rgba(103, 232, 249, .25); }
+
+/* Plain transfer labels with only the arrow as an action button. */
+.transfer-row { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; width: 100%; }
+.transfer-row .hint { text-align: right; }
+.transfer-row .btn-circle { flex-shrink: 0; width: 44px; height: 44px; }
