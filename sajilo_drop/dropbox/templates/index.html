@@ -268,13 +268,16 @@
 <section class="card file-card" aria-labelledby="filesTitle">
     <div class="file-heading">
         <h2 class="label card-title" id="filesTitle">Shared files</h2>
-        <span class="hint">Upload &amp; download</span>
+        <span class="flex-row" style="gap: 0.6rem;">
+            <span class="hint">live sync</span>
+            <span class="live-dot" id="filesLiveDot" aria-hidden="true"></span>
+        </span>
     </div>
-    <form class="file-upload" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
+    <form class="file-upload" id="fileUploadForm" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
         {% csrf_token %}
-        <div class="upload-area">
+        <div class="upload-area" id="uploadDropZone">
             <p class="label" id="filePickerLabel">Choose a file to share</p>
-            <p class="hint">Select a file from your device.</p>
+            <p class="hint">Select a file from your device or drag &amp; drop it here.</p>
             <div class="file-picker" id="filePicker">
                 {{ file_form.file }}
                 <div class="file-picker-display">
@@ -288,31 +291,53 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Upload progress bar -->
+            <div class="upload-progress-container" id="uploadProgressContainer" style="display: none;">
+                <div class="upload-progress-bar">
+                    <div class="upload-progress-fill" id="uploadProgressFill"></div>
+                </div>
+                <div class="upload-progress-info">
+                    <span class="hint" id="uploadProgressText">Uploading 0%...</span>
+                </div>
+            </div>
+
+            <!-- Upload status alert -->
+            <div class="file-upload-status" id="fileUploadStatus" role="status" aria-live="polite"></div>
+
             <span class="file-picker-status" id="filePickerStatus" role="status"></span>
             {{ file_form.file.errors }}
             {{ file_form.non_field_errors }}
         </div>
-        <button type="submit" class="btn-primary">Upload file</button>
+        <button type="submit" class="btn-primary" id="uploadSubmitBtn">
+            <span class="btn-text">Upload file</span>
+            <span class="btn-spinner" id="uploadBtnSpinner" style="display: none;" aria-hidden="true"></span>
+        </button>
     </form>
     <div class="divider"></div>
-    <h3 class="label">Available files</h3>
-    <ul class="file-list">
+    <div class="flex-row space-between" style="margin-bottom: 0.6rem;">
+        <h3 class="label" style="margin: 0;">Available files</h3>
+        <span class="hint" id="fileCountBadge">
+            {% if shared_files %}{{ shared_files|length }} file{{ shared_files|length|pluralize }}{% else %}0 files{% endif %}
+        </span>
+    </div>
+    <ul class="file-list" id="fileList">
         {% for shared_file in shared_files %}
-        <li class="shared-file-row">
+        <li class="shared-file-row" id="file-row-{{ shared_file.id }}">
             <div class="shared-file-info">
-                <span class="file-name">{{ shared_file.file.name }}</span>
-                <span class="hint">{{ shared_file.file.size|filesizeformat }}</span>
+                <span class="file-name" title="{{ shared_file.filename }}">{{ shared_file.filename }}</span>
+                <span class="hint">{{ shared_file.formatted_size }}</span>
             </div>
             <div class="shared-file-actions">
-                <a class="file-download" href="{{ shared_file.file.url }}" download aria-label="Download {{ shared_file.file.name }}">Download &#8595;</a>
-                <form class="file-delete-form" method="post" action="{% url 'delete_file' shared_file.id %}">
+                <a class="file-download" href="{{ shared_file.file.url }}" download="{{ shared_file.filename }}" aria-label="Download {{ shared_file.filename }}">Download &#8595;</a>
+                <form class="file-delete-form" method="post" action="{% url 'delete_file' shared_file.id %}" onsubmit="return handleDeleteFile(event, {{ shared_file.id }}, '{% url 'delete_file' shared_file.id %}');">
                     {% csrf_token %}
-                    <button class="file-delete" type="submit" aria-label="Delete {{ shared_file.file.name }}">Delete</button>
+                    <button class="file-delete" type="submit" aria-label="Delete {{ shared_file.filename }}">Delete</button>
                 </form>
             </div>
         </li>
         {% empty %}
-        <li class="empty-files">No files shared yet.<span class="hint">Uploaded files will appear here.</span></li>
+        <li class="empty-files" id="emptyFilesMsg">No files shared yet.<span class="hint">Uploaded files will appear here.</span></li>
         {% endfor %}
     </ul>
 </section>
@@ -337,38 +362,309 @@
 
 <script>
 
+/* =========================================================
+   FILE SHARING & ASYNC UPLOADS
+   ========================================================= */
 
-/* Keep Django's native file input and enhance its presentation. */
 (function () {
     const picker = document.getElementById('filePicker');
+    if (!picker) return;
+
     const input = picker.querySelector('input[type="file"]');
     const name = document.getElementById('selectedFileName');
-    const status = document.getElementById('filePickerStatus');
-    if (!input) return;
     const size = document.getElementById('selectedFileSize');
     const chooseButton = document.getElementById('chooseFileBtn');
-    input.setAttribute('aria-labelledby', 'filePickerLabel');
-    input.tabIndex = -1;
-    chooseButton.addEventListener('click', () => input.click());
-    input.addEventListener('invalid', () => chooseButton.focus());
+    const dropZone = document.getElementById('uploadDropZone');
+    const uploadForm = document.getElementById('fileUploadForm');
+    const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
+    const btnText = uploadSubmitBtn ? uploadSubmitBtn.querySelector('.btn-text') : null;
+    const btnSpinner = document.getElementById('uploadBtnSpinner');
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    const progressFill = document.getElementById('uploadProgressFill');
+    const progressText = document.getElementById('uploadProgressText');
+    const uploadStatus = document.getElementById('fileUploadStatus');
+    const fileList = document.getElementById('fileList');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+
     function formatFileSize(bytes) {
-        if (bytes === 0) return '0 bytes';
-        const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+        if (!bytes || bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
         const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
         return (bytes / Math.pow(1024, unit)).toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' ' + units[unit];
     }
+
     function updateFileName() {
-        const file = input.files && input.files[0];
-        name.textContent = file ? file.name : 'No file selected';
-        name.title = file ? file.name : '';
-        size.textContent = file ? formatFileSize(file.size) : '';
+        const file = input && input.files && input.files[0];
+        if (name) {
+            name.textContent = file ? file.name : 'No file selected';
+            name.title = file ? file.name : '';
+        }
+        if (size) {
+            size.textContent = file ? formatFileSize(file.size) : '';
+        }
         picker.classList.toggle('has-file', Boolean(file));
-        status.textContent = file ? 'Selected: ' + file.name + ', ' + formatFileSize(file.size) : '';
     }
-    input.addEventListener('change', updateFileName);
-    picker.classList.add('enhanced');
-    updateFileName();
+
+    if (input) {
+        input.setAttribute('aria-labelledby', 'filePickerLabel');
+        input.tabIndex = -1;
+        if (chooseButton) {
+            chooseButton.addEventListener('click', () => input.click());
+        }
+        input.addEventListener('invalid', () => chooseButton && chooseButton.focus());
+        input.addEventListener('change', updateFileName);
+        picker.classList.add('enhanced');
+        updateFileName();
+    }
+
+    function showStatus(msg, type = 'info') {
+        if (!uploadStatus) return;
+        uploadStatus.textContent = msg;
+        uploadStatus.className = 'file-upload-status status-' + type;
+        uploadStatus.style.display = 'block';
+    }
+
+    function hideStatus() {
+        if (!uploadStatus) return;
+        uploadStatus.textContent = '';
+        uploadStatus.className = 'file-upload-status';
+        uploadStatus.style.display = 'none';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    function renderFileList(files) {
+        if (!fileList) return;
+
+        if (fileCountBadge) {
+            const count = files.length;
+            fileCountBadge.textContent = count + ' file' + (count === 1 ? '' : 's');
+        }
+
+        if (!files || files.length === 0) {
+            fileList.innerHTML = '<li class="empty-files" id="emptyFilesMsg">No files shared yet.<span class="hint">Uploaded files will appear here.</span></li>';
+            return;
+        }
+
+        const csrfToken = getCsrfToken();
+        let html = '';
+        files.forEach(file => {
+            const deleteActionUrl = `/delete-file/${file.id}/`;
+            const fileNameEscaped = escapeHtml(file.name);
+            const fileUrlEscaped = escapeHtml(file.url);
+            const sizeFormatted = escapeHtml(file.formatted_size || formatFileSize(file.size));
+
+            html += `
+            <li class="shared-file-row" id="file-row-${file.id}">
+                <div class="shared-file-info">
+                    <span class="file-name" title="${fileNameEscaped}">${fileNameEscaped}</span>
+                    <span class="hint">${sizeFormatted}</span>
+                </div>
+                <div class="shared-file-actions">
+                    <a class="file-download" href="${fileUrlEscaped}" download="${fileNameEscaped}" aria-label="Download ${fileNameEscaped}">Download &#8595;</a>
+                    <form class="file-delete-form" method="post" action="${deleteActionUrl}" onsubmit="return handleDeleteFile(event, ${file.id}, '${deleteActionUrl}');">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                        <button class="file-delete" type="submit" aria-label="Delete ${fileNameEscaped}">Delete</button>
+                    </form>
+                </div>
+            </li>`;
+        });
+
+        fileList.innerHTML = html;
+    }
+
+    function fetchFilesList() {
+        fetch('{% url "get_files" %}', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Status ' + res.status);
+            return res.json();
+        })
+        .then(data => {
+            if (data.status === 'success' && Array.isArray(data.files)) {
+                renderFileList(data.files);
+            }
+        })
+        .catch(err => {
+            // Silently ignore background poll errors
+        });
+    }
+
+    // Handle AJAX file delete
+    window.handleDeleteFile = function (event, fileId, deleteUrl) {
+        event.preventDefault();
+        const row = document.getElementById('file-row-' + fileId);
+        const deleteBtn = row ? row.querySelector('.file-delete') : null;
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+        }
+
+        const formData = new FormData();
+        formData.append('ajax', '1');
+
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (data.files) {
+                    renderFileList(data.files);
+                } else {
+                    fetchFilesList();
+                }
+            } else {
+                alert(data.error || 'Failed to delete file.');
+                if (deleteBtn) {
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = 'Delete';
+                }
+            }
+        })
+        .catch(err => {
+            alert('Network error while deleting file.');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete';
+            }
+        });
+
+        return false;
+    };
+
+    // Drag and Drop support
+    if (dropZone && input) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                input.files = dt.files;
+                updateFileName();
+                hideStatus();
+            }
+        }, false);
+    }
+
+    // AJAX file upload handling
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            hideStatus();
+
+            if (!input || !input.files || input.files.length === 0) {
+                showStatus('Please select a file to upload first.', 'error');
+                return;
+            }
+
+            const formData = new FormData(uploadForm);
+            formData.append('ajax', '1');
+
+            // UI loading state
+            if (uploadSubmitBtn) uploadSubmitBtn.disabled = true;
+            if (btnText) btnText.textContent = 'Uploading...';
+            if (btnSpinner) btnSpinner.style.display = 'inline-block';
+
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+                if (progressFill) progressFill.style.width = '0%';
+                if (progressText) progressText.textContent = 'Uploading 0%...';
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', uploadForm.action, true);
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Accept', 'application/json');
+
+            xhr.upload.onprogress = function (event) {
+                if (event.lengthComputable && progressFill && progressText) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = percent < 100 ? `Uploading ${percent}%...` : 'Processing file...';
+                }
+            };
+
+            xhr.onload = function () {
+                if (uploadSubmitBtn) uploadSubmitBtn.disabled = false;
+                if (btnText) btnText.textContent = 'Upload file';
+                if (btnSpinner) btnSpinner.style.display = 'none';
+                if (progressContainer) progressContainer.style.display = 'none';
+
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (xhr.status >= 200 && xhr.status < 300 && data.status === 'success') {
+                        showStatus(data.message || 'File uploaded successfully!', 'success');
+                        // Reset file input
+                        input.value = '';
+                        updateFileName();
+                        // Render updated file list
+                        if (data.files) {
+                            renderFileList(data.files);
+                        } else {
+                            fetchFilesList();
+                        }
+                        setTimeout(hideStatus, 6000);
+                    } else {
+                        showStatus(data.error || 'Upload failed. Please check the file and try again.', 'error');
+                    }
+                } catch (err) {
+                    showStatus('Upload failed or unexpected server response.', 'error');
+                }
+            };
+
+            xhr.onerror = function () {
+                if (uploadSubmitBtn) uploadSubmitBtn.disabled = false;
+                if (btnText) btnText.textContent = 'Upload file';
+                if (btnSpinner) btnSpinner.style.display = 'none';
+                if (progressContainer) progressContainer.style.display = 'none';
+                showStatus('Network connection error during file upload.', 'error');
+            };
+
+            xhr.send(formData);
+        });
+    }
+
+    // Refresh files periodically
+    setInterval(fetchFilesList, 8000);
 })();
+
 
 /* =========================================================
    THEME

@@ -42,13 +42,46 @@ class JSONLDSchema(models.Model):
 
 
 
+import os
+
+
 class SharedFile(models.Model):
     file = models.FileField(upload_to="shared_files/")
     ip_address = models.GenericIPAddressField()
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def filename(self):
+        if self.file and self.file.name:
+            return os.path.basename(self.file.name)
+        return ""
+
+    @property
+    def file_exists(self):
+        try:
+            return bool(self.file and self.file.storage.exists(self.file.name))
+        except Exception:
+            return False
+
+    @property
+    def formatted_size(self):
+        try:
+            if not self.file or not self.file.storage.exists(self.file.name):
+                return ""
+            bytes_size = self.file.size
+            if bytes_size == 0:
+                return "0 B"
+            units = ['B', 'KB', 'MB', 'GB', 'TB']
+            for unit in units:
+                if bytes_size < 1024.0:
+                    return f"{bytes_size:.1f} {unit}".replace(".0 ", " ")
+                bytes_size /= 1024.0
+            return f"{bytes_size:.1f} PB"
+        except Exception:
+            return ""
+
     def __str__(self):
-        return self.file.name
+        return self.filename or "SharedFile"
 
     class Meta:
         managed = True

@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-_-hbvjw&4yxx78)bb53!a&p2#%)4fp&aql9937jotus6^sg^l8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['rabiamichhane.pythonanywhere.com', 'rabilamichhane.pythonanywhere.com']
+ALLOWED_HOSTS = ['rabiamichhane.pythonanywhere.com', 'rabilamichhane.pythonanywhere.com', '*']
 
 
 # Application definition
@@ -123,6 +123,9 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Media files (Uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
