@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'sharing',
+
+    'django_smart_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -141,3 +143,5 @@ CACHES = {
         ),
     }
 }
+
+RATE_LIMIT_BACKEND = 'database'
