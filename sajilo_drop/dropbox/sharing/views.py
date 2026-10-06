@@ -132,14 +132,6 @@ def content(req):
     )
 
 
-def redis_test(request):
-    cache.set("django_test", "Hello Redis", timeout=60)
-    value = cache.get("django_test")
-    return JsonResponse({
-        "value": value
-    })
-
-
 @ratelimit(key='ip', rate='60/m', method='GET', block=False)
 def get_files(request):
     if getattr(request, 'limited', False):

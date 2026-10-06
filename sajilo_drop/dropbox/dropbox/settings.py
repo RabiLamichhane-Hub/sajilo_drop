@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-_-hbvjw&4yxx78)bb53!a&p2#%)4fp&aql9937jotus6^sg^l8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['rabiamichhane.pythonanywhere.com', 'rabilamichhane.pythonanywhere.com',]
+ALLOWED_HOSTS = ['rabiamichhane.pythonanywhere.com', 'rabilamichhane.pythonanywhere.com','*']
 
 
 # Application definition
@@ -134,10 +134,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": os.environ.get(
+            "MEMCACHED_LOCATION",
+            "127.0.0.1:11211"
+        ),
     }
 }
