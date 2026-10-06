@@ -136,12 +136,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
-        "LOCATION": os.environ.get(
-            "MEMCACHED_LOCATION",
-            "127.0.0.1:11211"
-        ),
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "sajilo-drop-cache",
     }
 }
+
 
 RATE_LIMIT_BACKEND = 'database'
