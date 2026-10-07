@@ -85,3 +85,39 @@ class SharedFile(models.Model):
 
     class Meta:
         managed = True
+
+
+class ActivityLog(models.Model):
+    ACTION_CHOICES = [
+        ("ACCESS", "Website Access"),
+        ("MESSAGE", "Message Sent"),
+        ("FILE_UPLOAD", "File Uploaded"),
+        ("FILE_DELETE", "File Deleted"),
+    ]
+
+    ip = models.GenericIPAddressField()
+    user_agent = models.TextField(blank=True)
+
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES
+    )
+
+    message = models.TextField(blank=True)
+
+    filename = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    file_size = models.BigIntegerField(
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return f"{self.ip} - {self.action} - {self.created_at}"

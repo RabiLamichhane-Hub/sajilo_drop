@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Message, JSONLDSchema, SharedFile
+from .models import ActivityLog
 
 @admin.register(SharedFile)
 class SharedFileAdmin(admin.ModelAdmin):
@@ -17,3 +18,17 @@ class MessageAdmin(admin.ModelAdmin):
     content_preview.short_description = "Content"
 
 admin.site.register(JSONLDSchema)
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "ip",
+        "action",
+        "filename",
+        "file_size",
+    )
+
+    list_filter = ("action", "created_at")
+    search_fields = ("ip", "message", "filename", "user_agent")
+    readonly_fields = ("created_at",)

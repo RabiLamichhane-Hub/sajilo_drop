@@ -7,7 +7,7 @@ import json
 from .utils import get_client_ip
 from datetime import timedelta
 from django.utils import timezone
-from django.core.cache import cache
+from . models import ActivityLog
 
 
 def cleanup_expired_files():
@@ -62,6 +62,12 @@ def index(request):
 
     obj, created = Message.objects.get_or_create(ip=ip_addr)
 
+    ActivityLog.objects.create(
+        ip=ip_addr,
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        action="ACCESS",
+    )
+    
     if created:
         obj.content = "Nothing to see here!"
         obj.save()
