@@ -817,3 +817,10 @@ a:focus-visible, summary:focus-visible, input[type="file"]:focus-visible { outli
 .shared-file-row {
     transition: opacity 0.25s ease, transform 0.25s ease;
 }
+
+/* Give shared-file uploads more room and keep the heading action clear. */
+.file-card .upload-area { min-height: 250px; }
+.file-heading-action { white-space: nowrap; color: var(--color-highlight); }
+
+/* Match the shared-text input height to the file upload area. */
+.text-card #textarea { min-height: 250px; }
