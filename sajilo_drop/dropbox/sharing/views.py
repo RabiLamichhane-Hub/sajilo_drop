@@ -59,12 +59,13 @@ def serialize_files(queryset, client_ip=None):
 
 def index(request):
     ip_addr = get_client_ip(request.META)
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
 
     obj, created = Message.objects.get_or_create(ip=ip_addr)
 
     ActivityLog.objects.create(
         ip=ip_addr,
-        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        user_agent=user_agent,
         action="ACCESS",
     )
     
@@ -93,6 +94,7 @@ def index(request):
         "file_form": file_form,
         "shared_files": shared_files,
         "faqs": faqs,
+        "user_agent": user_agent,
     })
 
 

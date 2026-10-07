@@ -358,6 +358,31 @@
 </section>
 {% endif %}
 
+<footer class="user-agent-section" aria-label="Client information">
+    <div class="user-agent-card">
+        <div class="user-agent-header">
+            <div class="user-agent-title-wrap">
+                <svg class="user-agent-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span class="user-agent-label">Your User Agent</span>
+            </div>
+            <button type="button" class="btn-copy-ua" id="copyUserAgentBtn" onclick="copyUserAgent()" title="Copy user agent to clipboard" aria-label="Copy user agent to clipboard">
+                <svg id="copyUaIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copyUaText">Copy</span>
+            </button>
+        </div>
+        <div class="user-agent-body">
+            <code class="user-agent-string" id="userAgentDisplay">{{ user_agent|default:"" }}</code>
+        </div>
+    </div>
+</footer>
+
 
 <script>
 
@@ -1830,9 +1855,74 @@ async function decryptMessage() {
 }
 
 
-</script>
+/* =========================================================
+   USER AGENT DISPLAY & COPY
+   ========================================================= */
 
+(function initUserAgent() {
+    const uaDisplay = document.getElementById('userAgentDisplay');
+    if (uaDisplay && (!uaDisplay.textContent.trim() || uaDisplay.textContent === '')) {
+        if (typeof navigator !== 'undefined' && navigator.userAgent) {
+            uaDisplay.textContent = navigator.userAgent;
+        }
+    }
+})();
+
+function copyUserAgent() {
+    const uaDisplay = document.getElementById('userAgentDisplay');
+    const copyBtn = document.getElementById('copyUserAgentBtn');
+    const copyText = document.getElementById('copyUaText');
+    const copyIcon = document.getElementById('copyUaIcon');
+
+    if (!uaDisplay) return;
+    const textToCopy = uaDisplay.textContent.trim();
+    if (!textToCopy) return;
+
+    function setSuccessState() {
+        if (copyText) copyText.textContent = 'Copied!';
+        if (copyBtn) copyBtn.classList.add('copied');
+        if (copyIcon) {
+            copyIcon.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+        }
+        setTimeout(() => {
+            if (copyText) copyText.textContent = 'Copy';
+            if (copyBtn) copyBtn.classList.remove('copied');
+            if (copyIcon) {
+                copyIcon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
+            }
+        }, 2000);
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy).then(setSuccessState).catch(() => {
+            fallbackCopy(textToCopy, setSuccessState);
+        });
+    } else {
+        fallbackCopy(textToCopy, setSuccessState);
+    }
+}
+
+function fallbackCopy(text, callback) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        callback();
+    } catch (err) {
+        console.error('Fallback copy failed', err);
+    }
+    document.body.removeChild(textarea);
+}
+
+</script>
 
 </body>
 
 </html>
+
