@@ -625,8 +625,12 @@ button:focus-visible,
 .label { font-size: 1.05rem; letter-spacing: 0; text-transform: none; color: var(--color-text); }
 .card-title { font-size: clamp(2rem, 3vw, 2.65rem); font-weight: 700; line-height: 1.15; letter-spacing: -.04em; }
 .btn-transfer { width: 100%; max-width: 100%; margin-left: 0; display: flex; flex-direction: row; justify-content: flex-end; gap: .45rem; text-align: right; font-size: .84rem; padding: .65rem 1rem; }
+.text-heading,
 .file-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.text-heading .label,
 .file-heading .label { margin: 0; }
+.text-heading-actions { display: flex; align-items: center; gap: .75rem; flex-shrink: 0; }
+.live-status-wrap { display: inline-flex; align-items: center; gap: .6rem; }
 .file-upload { display: grid; gap: 1rem; }
 .upload-area { min-height: 200px; padding: 1.5rem 1rem; border: 1px dashed var(--color-accent); border-radius: var(--radius-md); background: var(--color-input); text-align: center; }
 .upload-icon { display: grid; place-items: center; width: 44px; height: 44px; margin: 0 auto .75rem; border-radius: 12px; color: var(--color-highlight); background: rgba(var(--accent-rgb), .12); font-size: 1.65rem; }
@@ -659,6 +663,7 @@ a:focus-visible, summary:focus-visible, input[type="file"]:focus-visible { outli
     .site-logo { width: 190px; }
 }
 @media (max-width: 400px) {
+    .text-heading,
     .file-heading { align-items: flex-start; flex-direction: column; }
     .file-list a { align-items: flex-start; flex-direction: column; gap: .4rem; }
     .card-title { font-size: 1.8rem; }
@@ -882,6 +887,7 @@ a:focus-visible, summary:focus-visible, input[type="file"]:focus-visible { outli
     color: var(--color-dim);
 }
 
+.btn-copy,
 .btn-copy-ua {
     display: inline-flex;
     align-items: center;
@@ -897,17 +903,20 @@ a:focus-visible, summary:focus-visible, input[type="file"]:focus-visible { outli
     transition: background-color var(--speed), border-color var(--speed), color var(--speed), transform var(--speed);
 }
 
+.btn-copy:hover,
 .btn-copy-ua:hover {
     background: var(--color-surface-solid);
     border-color: var(--color-accent);
     color: var(--color-highlight);
 }
 
+.btn-copy:focus-visible,
 .btn-copy-ua:focus-visible {
     outline: 2px solid var(--color-highlight);
     outline-offset: 2px;
 }
 
+.btn-copy.copied,
 .btn-copy-ua.copied {
     background: rgba(52, 211, 153, 0.15);
     border-color: var(--color-live);
